@@ -16,4 +16,4 @@ The current policy is a prototype, not an enforced system-wide security boundary
 ## Status (verified vs. not)
 
 - Verified: Rust core unit tests and bridge via `cargo test` / `cargo run` in `core/`.
-- Not verified: Bazel files (no Bazel in dev environment; rule versions and `Cargo.lock` need generating), Python adapter tests, the Mojo kernel (no Mojo toolchain), and all LangChain/LangGraph/CrewAI/BeeAI calls (frameworks not installed or version-pinned; BeeAI is only a documented seam).
+- Not verified: Bazel files and rule versions, Python adapter tests, the Mojo kernel, and all LangChain/LangGraph/CrewAI/BeeAI calls (frameworks are not version-pinned; BeeAI is only a documented seam).
