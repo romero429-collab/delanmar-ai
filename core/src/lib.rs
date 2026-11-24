@@ -22,7 +22,11 @@ pub struct Agent {
 }
 
 const fn a(id: &'static str, name: &'static str, department: Department) -> Agent {
-    Agent { id, name, department }
+    Agent {
+        id,
+        name,
+        department,
+    }
 }
 
 use Department::*;
@@ -48,9 +52,17 @@ pub const ROSTER: [Agent; 24] = [
     a("legal", "Legal", InternalOperations),
     a("human_resources", "Human Resources", InternalOperations),
     a("research", "Research", InternalOperations),
-    a("development_based_on_research", "Development Based on Research", InternalOperations),
+    a(
+        "development_based_on_research",
+        "Development Based on Research",
+        InternalOperations,
+    ),
     a("admin", "Admin", InternalOperations),
-    a("executive_personal_assistant", "Executive Personal Assistant", Executive),
+    a(
+        "executive_personal_assistant",
+        "Executive Personal Assistant",
+        Executive,
+    ),
     a("project_manager", "Project Manager", Project),
 ];
 
@@ -99,7 +111,9 @@ pub enum AuthError {
 fn valid_identifier(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= 128
-        && value.bytes().all(|b| b.is_ascii_alphanumeric() || b"._:-/".contains(&b))
+        && value
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b"._:-/".contains(&b))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -134,14 +148,15 @@ impl PolicyTable {
     /// Production policy: every agent has an explicit, empty permission set.
     /// No business permissions are granted until the owner worksheet establishes them.
     pub fn production() -> Self {
-        let grants = ROSTER.iter().map(|g| (g.id.to_string(), Vec::new())).collect();
+        let grants = ROSTER
+            .iter()
+            .map(|g| (g.id.to_string(), Vec::new()))
+            .collect();
         PolicyTable { grants }
     }
 
     /// Validate the complete table before returning it.
-    pub fn from_assignments(
-        assignments: Vec<(&str, Vec<Permission>)>,
-    ) -> Result<Self, String> {
+    pub fn from_assignments(assignments: Vec<(&str, Vec<Permission>)>) -> Result<Self, String> {
         let mut t = Self::production();
         let mut agents = BTreeSet::new();
         for (agent, perms) in assignments {
@@ -192,7 +207,10 @@ pub struct Core {
 #[derive(Debug, Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
 enum Request {
-    ListAgents { version: u32, request_id: String },
+    ListAgents {
+        version: u32,
+        request_id: String,
+    },
     Authorize {
         version: u32,
         request_id: String,
@@ -228,8 +246,19 @@ struct Response<'a> {
     agents: Option<&'a [Agent]>,
 }
 
-fn response<'a>(request_id: Option<&'a str>, decision: Decision, reason: &'static str) -> Response<'a> {
-    Response { version: PROTOCOL_VERSION, request_id, decision, reason, principal: None, agents: None }
+fn response<'a>(
+    request_id: Option<&'a str>,
+    decision: Decision,
+    reason: &'static str,
+) -> Response<'a> {
+    Response {
+        version: PROTOCOL_VERSION,
+        request_id,
+        decision,
+        reason,
+        principal: None,
+        agents: None,
+    }
 }
 
 impl Core {
@@ -240,31 +269,65 @@ impl Core {
     pub fn handle(&self, line: &str) -> String {
         let request = match serde_json::from_str::<Request>(line) {
             Ok(e) => e,
-            Err(_) => return serde_json::to_string(&response(None, Decision::Deny, "malformed_request")).unwrap(),
+            Err(_) => {
+                return serde_json::to_string(&response(None, Decision::Deny, "malformed_request"))
+                    .unwrap()
+            }
         };
         let (version, request_id) = match &request {
-            Request::ListAgents { version, request_id } | Request::Authorize { version, request_id, .. } => (*version, request_id.as_str()),
+            Request::ListAgents {
+                version,
+                request_id,
+            }
+            | Request::Authorize {
+                version,
+                request_id,
+                ..
+            } => (*version, request_id.as_str()),
         };
         if !valid_identifier(request_id) {
-            return serde_json::to_string(&response(None, Decision::Deny, "malformed_request")).unwrap();
+            return serde_json::to_string(&response(None, Decision::Deny, "malformed_request"))
+                .unwrap();
         }
         let id = Some(request_id);
         if version != PROTOCOL_VERSION {
-            return serde_json::to_string(&response(id, Decision::Deny, "unsupported_version")).unwrap();
+            return serde_json::to_string(&response(id, Decision::Deny, "unsupported_version"))
+                .unwrap();
         }
-        if let Request::Authorize { agent, action, resource, context, .. } = &request {
-            if !valid_identifier(agent) || !valid_identifier(action)
-                || !valid_identifier(&resource.kind) || !valid_identifier(&resource.id)
-                || !valid_identifier(&context.operation) || !valid_identifier(&context.purpose)
+        if let Request::Authorize {
+            agent,
+            action,
+            resource,
+            context,
+            ..
+        } = &request
+        {
+            if !valid_identifier(agent)
+                || !valid_identifier(action)
+                || !valid_identifier(&resource.kind)
+                || !valid_identifier(&resource.id)
+                || !valid_identifier(&context.operation)
+                || !valid_identifier(&context.purpose)
             {
-                return serde_json::to_string(&response(id, Decision::Deny, "malformed_request")).unwrap();
+                return serde_json::to_string(&response(id, Decision::Deny, "malformed_request"))
+                    .unwrap();
             }
         }
         let Ok(who) = &self.caller else {
-            return serde_json::to_string(&response(id, Decision::Deny, "caller_not_authenticated")).unwrap();
+            return serde_json::to_string(&response(
+                id,
+                Decision::Deny,
+                "caller_not_authenticated",
+            ))
+            .unwrap();
         };
         if !is_known_agent(&who.agent_id) {
-            return serde_json::to_string(&response(id, Decision::Deny, "caller_not_authenticated")).unwrap();
+            return serde_json::to_string(&response(
+                id,
+                Decision::Deny,
+                "caller_not_authenticated",
+            ))
+            .unwrap();
         }
         let out = match &request {
             Request::ListAgents { .. } => {
@@ -302,13 +365,22 @@ mod tests {
         PolicyTable::from_assignments(vec![
             (
                 "scheduler",
-                vec![Permission { action: "fixture_read".into(), effect: Effect::Allow }],
+                vec![Permission {
+                    action: "fixture_read".into(),
+                    effect: Effect::Allow,
+                }],
             ),
             (
                 "bookkeeping",
                 vec![
-                    Permission { action: "issue_payment".into(), effect: Effect::Allow },
-                    Permission { action: "fixture_review".into(), effect: Effect::ApprovalRequired },
+                    Permission {
+                        action: "issue_payment".into(),
+                        effect: Effect::Allow,
+                    },
+                    Permission {
+                        action: "fixture_review".into(),
+                        effect: Effect::ApprovalRequired,
+                    },
                 ],
             ),
         ])
@@ -316,7 +388,12 @@ mod tests {
     }
 
     fn core_as(agent: &str) -> Core {
-        Core::new(Ok(Principal { agent_id: agent.into() }), Ok(fixture()))
+        Core::new(
+            Ok(Principal {
+                agent_id: agent.into(),
+            }),
+            Ok(fixture()),
+        )
     }
 
     fn req(c: &Core, agent: &str, action: &str) -> serde_json::Value {
@@ -337,7 +414,9 @@ mod tests {
     fn production_policy_grants_nothing() {
         let p = PolicyTable::production();
         for g in ROSTER.iter() {
-            let who = Principal { agent_id: g.id.into() };
+            let who = Principal {
+                agent_id: g.id.into(),
+            };
             assert_eq!(p.authorize(&who, "create_task").0, Decision::Deny);
             assert_eq!(p.authorize(&who, "issue_payment").0, Decision::Deny);
         }
@@ -350,7 +429,10 @@ mod tests {
         assert_eq!(req(&c, "scheduler", "fixture_review")["decision"], "deny");
         assert_eq!(req(&c, "scheduler", "unlisted")["decision"], "deny");
         let b = core_as("bookkeeping");
-        assert_eq!(req(&b, "bookkeeping", "fixture_review")["decision"], "approval_required");
+        assert_eq!(
+            req(&b, "bookkeeping", "fixture_review")["decision"],
+            "approval_required"
+        );
     }
 
     #[test]
@@ -361,8 +443,25 @@ mod tests {
 
     #[test]
     fn approval_required_actions_never_allow() {
-        let c = core_as("bookkeeping");
-        assert_eq!(req(&c, "bookkeeping", "issue_payment")["decision"], "approval_required");
+        let permissions = APPROVAL_REQUIRED
+            .iter()
+            .map(|action| Permission {
+                action: (*action).into(),
+                effect: Effect::Allow,
+            })
+            .collect();
+        let c = Core::new(
+            Ok(Principal {
+                agent_id: "bookkeeping".into(),
+            }),
+            PolicyTable::from_assignments(vec![("bookkeeping", permissions)]),
+        );
+        for action in APPROVAL_REQUIRED {
+            assert_eq!(
+                req(&c, "bookkeeping", action)["decision"],
+                "approval_required"
+            );
+        }
     }
 
     #[test]
@@ -406,14 +505,19 @@ mod tests {
 
     #[test]
     fn unauthenticated_caller_denied() {
-        let c = Core::new(Err(AuthError::Unavailable("no channel".into())), Ok(fixture()));
+        let c = Core::new(
+            Err(AuthError::Unavailable("no channel".into())),
+            Ok(fixture()),
+        );
         assert_eq!(req(&c, "scheduler", "fixture_read")["decision"], "deny");
     }
 
     #[test]
     fn authorization_service_failure_denies() {
         let c = Core::new(
-            Ok(Principal { agent_id: "scheduler".into() }),
+            Ok(Principal {
+                agent_id: "scheduler".into(),
+            }),
             Err("policy load failed".into()),
         );
         let r = req(&c, "scheduler", "fixture_read");
@@ -428,15 +532,32 @@ mod tests {
 
     #[test]
     fn duplicate_and_invalid_policy_assignments_rejected() {
-        let p = |action: &str, effect| Permission { action: action.into(), effect };
+        let p = |action: &str, effect| Permission {
+            action: action.into(),
+            effect,
+        };
         assert!(PolicyTable::from_assignments(vec![("admin", vec![]), ("admin", vec![])]).is_err());
-        assert!(PolicyTable::from_assignments(vec![("admin", vec![p("x", Effect::Allow), p("x", Effect::Allow)])]).is_err());
-        assert!(PolicyTable::from_assignments(vec![("admin", vec![p("x", Effect::Allow), p("x", Effect::ApprovalRequired)])]).is_err());
+        assert!(PolicyTable::from_assignments(vec![(
+            "admin",
+            vec![p("x", Effect::Allow), p("x", Effect::Allow)]
+        )])
+        .is_err());
+        assert!(PolicyTable::from_assignments(vec![(
+            "admin",
+            vec![p("x", Effect::Allow), p("x", Effect::ApprovalRequired)]
+        )])
+        .is_err());
         for action in ["", " ", " bad", "x\n"] {
-            assert!(PolicyTable::from_assignments(vec![("admin", vec![p(action, Effect::Allow)])]).is_err());
+            assert!(
+                PolicyTable::from_assignments(vec![("admin", vec![p(action, Effect::Allow)])])
+                    .is_err()
+            );
         }
         assert!(serde_json::from_str::<Permission>(r#"{"action":"x","effect":"deny"}"#).is_err());
-        assert!(serde_json::from_str::<Permission>(r#"{"action":"x","effect":"allow","extra":true}"#).is_err());
+        assert!(serde_json::from_str::<Permission>(
+            r#"{"action":"x","effect":"allow","extra":true}"#
+        )
+        .is_err());
     }
 
     #[test]
@@ -450,5 +571,39 @@ mod tests {
             r#"{"version":2,"request_id":"x","op":"authorize","agent":"scheduler","action":"fixture_read","resource":{"kind":"x","id":"x"},"context":{"operation":"x","purpose":"x"},"principal":"agent:scheduler"}"#)).unwrap();
         assert_eq!(r["decision"], "deny");
         assert_eq!(r["request_id"], serde_json::Value::Null);
+    }
+
+    #[test]
+    fn required_fields_are_validated() {
+        let c = core_as("scheduler");
+        let valid = serde_json::json!({"version":2,"request_id":"r","op":"authorize",
+            "agent":"scheduler","action":"fixture_read","resource":{"kind":"x","id":"x"},
+            "context":{"operation":"read","purpose":"test"}});
+        for field in ["request_id", "agent", "action", "resource", "context"] {
+            let mut request = valid.clone();
+            request.as_object_mut().unwrap().remove(field);
+            let result: serde_json::Value =
+                serde_json::from_str(&c.handle(&request.to_string())).unwrap();
+            assert_eq!(result["decision"], "deny", "{field}");
+        }
+        for (outer, field) in [
+            ("resource", "kind"),
+            ("resource", "id"),
+            ("context", "operation"),
+            ("context", "purpose"),
+        ] {
+            for value in [
+                serde_json::Value::Null,
+                serde_json::json!(""),
+                serde_json::json!("a b"),
+                serde_json::json!("x".repeat(129)),
+            ] {
+                let mut request = valid.clone();
+                request[outer][field] = value;
+                let result: serde_json::Value =
+                    serde_json::from_str(&c.handle(&request.to_string())).unwrap();
+                assert_eq!(result["decision"], "deny", "{outer}.{field}");
+            }
+        }
     }
 }

@@ -6,7 +6,9 @@ use std::io::{self, BufRead, Write};
 
 fn main() {
     let core = Core::new(
-        Err(AuthError::Unavailable("trusted launcher not implemented".into())),
+        Err(AuthError::Unavailable(
+            "trusted launcher not implemented".into(),
+        )),
         Ok(PolicyTable::production()),
     );
     let stdout = io::stdout();
