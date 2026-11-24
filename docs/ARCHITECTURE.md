@@ -25,8 +25,23 @@ The current policy is a prototype, not an enforced system-wide security boundary
 
 ## Status (verified vs. not)
 
-- The historical snapshot below applies only to its stated revision, not the current work in progress.
+- The snapshots below apply only to their stated revisions.
 - Not verified: Bazel files and rule versions, the Mojo kernel, and all LangChain/LangGraph/CrewAI/BeeAI calls (frameworks are not version-pinned; BeeAI is only a documented seam).
+
+### Increment 1 correction verification
+
+On 2026-11-24, the code subsequently committed as `5ef091da7f41ef855dc16b46e4f19f70c725a5d7` was tested in Linux 7.0.0-1017-azure x86_64, Rust/Cargo 1.100.0 and Python 3.12.3. Commands ran from the repository root:
+
+| Command | Result |
+|---|---|
+| `cargo test --locked --manifest-path core/Cargo.toml` | Passed: 14 Rust unit tests, including malformed contracts, policy validation and synthetic caller mismatch; no binary or doc tests. |
+| `cargo build --locked --manifest-path core/Cargo.toml` | Passed. |
+| `PYTHONPATH=adapters DELANMAR_BRIDGE="$PWD/core/target/debug/delanmar_bridge" python3 -m unittest discover -s adapters/tests -p '*_test.py' -v` | Passed: 7 tests, including same-user forged launcher and identity claims, malformed requests and synthetic BeeAI seam coverage. |
+| `cargo fmt --manifest-path core/Cargo.toml -- --check` | Passed. |
+| `git diff --check` | Passed for the then-uncommitted changes. |
+| CodeQL checker | No Python or Rust alerts; Rust was analyzed before the final Python-only change. |
+
+Review status: automated analysis and a code review identified a BeeAI seam regression, which was corrected and tested. Independent security approval is pending. These results do not establish authentication, resource-scoped authorization, framework enforcement, or production readiness. No Bazel, Mojo, or actual framework integration tests were run for this correction.
 
 ### Historical local verification snapshot
 

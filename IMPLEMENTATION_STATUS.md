@@ -1,11 +1,11 @@
 # Implementation Status
 
-Inventory of current work in progress and its verification limits. Maturity terms are defined in [PHASE_ACCEPTANCE_STANDARD.md](PHASE_ACCEPTANCE_STANDARD.md). The historical verification snapshot in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) applies only to its stated revision, not the current work.
+Inventory of current work in progress and its verification limits. Maturity terms are defined in [PHASE_ACCEPTANCE_STANDARD.md](PHASE_ACCEPTANCE_STANDARD.md). Verification snapshots in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) apply only to their stated revisions.
 
 | Component | Implemented | Tested | Piloted | Production-ready | Notes |
 |---|---|---|---|---|---|
-| Rust core (`core/`): 24-agent roster, action policy, JSON-lines binary | Work in progress | Current work unverified | No | No | Strict v2 contract includes resource, context and request ID, with structured decisions. Per-agent production grants are empty. No trustworthy caller authentication; descriptor self-assertion removed, so the production bridge denies all calls. Resource/context are not enforced. |
-| Python bridge (`adapters/delanmar_adapters/bridge.py`) | Work in progress | Current work unverified | No | No | Subprocess client for the versioned contract; historical snapshot reported cleanup warnings. |
+| Rust core (`core/`): 24-agent roster, action policy, JSON-lines binary | Work in progress | Unit tests, per snapshot | No | No | Strict v2 contract includes resource, context and request ID, with structured decisions. Per-agent production grants are empty. No trustworthy caller authentication; descriptor self-assertion removed, so the production bridge denies all calls. Resource/context are not enforced. |
+| Python bridge (`adapters/delanmar_adapters/bridge.py`) | Work in progress | Bridge tests, per snapshot | No | No | Subprocess client for the versioned contract; production calls deny without authentication. |
 | LangChain and LangGraph helpers | Yes | Unverified | No | No | Unpinned; voluntary gate only, with no framework bypass prevention (Phase 7). |
 | CrewAI helper | Roster-based helper | Unverified | No | No | Unpinned; roster lookup only, not an execution gate (Phase 7). |
 | BeeAI | Callable seam only | Unverified | No | No | Must move beyond seam (Phase 7). |
