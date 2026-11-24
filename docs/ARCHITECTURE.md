@@ -34,6 +34,24 @@ The current policy is a prototype, not an enforced system-wide security boundary
 
 ### Increment 1 correction verification
 
+#### PR #7 input-limit and cleanup review
+
+On 2026-11-24, on Linux 7.0.0-1017-azure x86_64 with Rust/Cargo 1.100.0 and Python 3.12.3, the exact original PR head `f30c6c96303045c5e62538b3733d8c573fbe8f7b` was tested before changes: the Rust test and build commands below passed (15 Rust unit tests), and the Python command passed (18 tests). These results are historical, not evidence for a later code revision.
+
+The same environment then tested code commit `7248e15b5415e8ad81da126c361eeccd49aacdd9`:
+
+| Command | Result |
+|---|---|
+| `cargo test --locked --manifest-path /home/runner/work/delanmar-ai/delanmar-ai/core/Cargo.toml` | Passed: 15 Rust unit tests. |
+| `cargo build --locked --manifest-path /home/runner/work/delanmar-ai/delanmar-ai/core/Cargo.toml` | Passed. |
+| `PYTHONPATH=/home/runner/work/delanmar-ai/delanmar-ai/adapters DELANMAR_BRIDGE=/home/runner/work/delanmar-ai/delanmar-ai/core/target/debug/delanmar_bridge python3 -m unittest discover -s /home/runner/work/delanmar-ai/delanmar-ai/adapters/tests -p '*_test.py' -v` | Passed: 21 tests, including oversized input and the observed surviving descendant on timeout and close. |
+| `cargo fmt --manifest-path /home/runner/work/delanmar-ai/delanmar-ai/core/Cargo.toml -- --check` | Passed. |
+| `git diff --check` | Passed. |
+| `timeout 45s bazel test //core:delanmar_core_test //adapters:bridge_test` | Timed out without output; Bazel build and tests remain unverified. |
+| CodeQL checker | No Python or Rust alerts. |
+
+Review status: automated code review found no significant issue in the input-limit changes. Independent security and owner approval remain pending; actual frameworks and production isolation remain unverified. This result is evidence for tested behavior, not proof of a secure boundary or Phase 1 acceptance.
+
 #### Historical PR #7 review snapshot
 
 On 2026-11-24, code revision `7379f362560eaa756468e9f10010ae25b7bb85e9` was tested against main revision `b730a88150fbd632cf73f3c0a52192c2cd577563` on Linux 7.0.0-1017-azure x86_64, Rust/Cargo 1.100.0 and Python 3.12.3. Commands ran from the repository root:
