@@ -1,28 +1,28 @@
 """Framework adapters. Each imports its framework lazily so one missing package
-does not break the others. Every adapter routes actions through the Rust authorization gate (voluntary; not yet enforced).
+does not break the others. Gate helpers are voluntary and not universally enforced.
 NOTE: framework APIs here are unverified against installed versions (see docs/ARCHITECTURE.md)."""
 from .bridge import Bridge
 
 
-def guarded(bridge: Bridge, agent: str, action: str, fn, *args, **kwargs):
+def guarded(bridge: Bridge, agent: str, action: str, fn, *args, resource, context, **kwargs):
     """Run fn only if the core allows it; otherwise return a pending-approval marker."""
-    decision = bridge.check_action(agent, action)
+    decision = bridge.check_action(agent, action, resource=resource, context=context)
     if decision != "allow":
         return {"status": decision, "agent": agent, "action": action}
     return {"status": "done", "result": fn(*args, **kwargs)}
 
 
-def langchain_tool(bridge: Bridge, agent: str, action: str, fn, description: str):
+def langchain_tool(bridge: Bridge, agent: str, action: str, fn, description: str, *, resource, context):
     from langchain_core.tools import StructuredTool
 
     return StructuredTool.from_function(
-        func=lambda **kw: guarded(bridge, agent, action, fn, **kw),
+        func=lambda **kw: guarded(bridge, agent, action, fn, resource=resource, context=context, **kw),
         name=f"{agent}_{action}",
         description=description,
     )
 
 
-def langgraph_gated_graph(bridge: Bridge, agent: str, action: str, fn):
+def langgraph_gated_graph(bridge: Bridge, agent: str, action: str, fn, *, resource, context):
     """Graph: gate -> (execute | await_human)."""
     from typing import TypedDict
     from langgraph.graph import END, StateGraph
@@ -32,7 +32,7 @@ def langgraph_gated_graph(bridge: Bridge, agent: str, action: str, fn):
         result: object
 
     g = StateGraph(S)
-    g.add_node("gate", lambda s: {"decision": bridge.check_action(agent, action)})
+    g.add_node("gate", lambda s: {"decision": bridge.check_action(agent, action, resource=resource, context=context)})
     g.add_node("execute", lambda s: {"result": fn()})
     g.add_node("await_human", lambda s: {"result": "pending human approval"})
     g.set_entry_point("gate")

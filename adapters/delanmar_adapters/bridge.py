@@ -1,49 +1,44 @@
-"""Client for the Bazel-built Rust bridge. All Python code reaches the core only through this.
-
-The launcher (this class) binds the bridge process to one agent identity over a private
-inherited pipe. The agent id in each request is only a claim; the core rejects it unless
-it matches the bound caller. This does NOT yet prevent a framework from bypassing the
-helper (execution broker: Phase 1 Increments 3-4)."""
+"""Client for the Rust bridge. Caller authentication is not yet implemented."""
 import json
 import os
 import subprocess
+import uuid
 
-PROTOCOL_VERSION = 1
+PROTOCOL_VERSION = 2
 
 
 class Bridge:
-    def __init__(self, caller, binary=None):
+    def __init__(self, *, binary=None):
         self.binary = binary or os.environ["DELANMAR_BRIDGE"]
-        self.caller = caller
-        r, w = os.pipe()
-        try:
-            self._p = subprocess.Popen(
-                [self.binary, "--caller-fd", str(r)],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                text=True,
-                pass_fds=(r,),
-            )
-            os.write(w, json.dumps({"version": PROTOCOL_VERSION, "agent": caller}).encode())
-        finally:
-            os.close(r)
-            os.close(w)
+        self._p = subprocess.Popen(
+            [self.binary], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True
+        )
 
     def call(self, **request):
         request["version"] = PROTOCOL_VERSION
+        request["request_id"] = uuid.uuid4().hex
         self._p.stdin.write(json.dumps(request) + "\n")
         self._p.stdin.flush()
-        return json.loads(self._p.stdout.readline())
+        response = json.loads(self._p.stdout.readline())
+        if (response.get("version") != PROTOCOL_VERSION
+                or response.get("request_id") != request["request_id"]
+                or response.get("decision") not in ("allow", "deny", "approval_required")
+                or not isinstance(response.get("reason"), str)):
+            raise RuntimeError("invalid bridge response")
+        return response
 
-    def authorize(self, agent, action):
+    def authorize(self, agent, action, *, resource, context):
         """Return the full decision response: allow | deny | approval_required."""
-        return self.call(op="authorize", agent=agent, action=action)
+        return self.call(op="authorize", agent=agent, action=action, resource=resource, context=context)
 
-    def check_action(self, agent, action):
-        return self.authorize(agent, action)["decision"]
+    def check_action(self, agent, action, *, resource, context):
+        return self.authorize(agent, action, resource=resource, context=context)["decision"]
 
     def list_agents(self):
-        return self.call(op="list_agents")["agents"]
+        response = self.call(op="list_agents")
+        if response["decision"] != "allow":
+            raise PermissionError(response["reason"])
+        return response["agents"]
 
     def close(self):
         self._p.stdin.close()

@@ -4,25 +4,31 @@ The [Core Architecture v1.0](../DELANMAR_CORE_ARCHITECTURE_v1.0.md) is the found
 
 | Layer | Language | Role |
 |---|---|---|
-| `core/` | Rust | 24-agent roster and human-approval policy (blueprint §8); JSON-lines bridge binary |
+| `core/` | Rust | 24-agent roster, default-deny policy, and JSON-lines bridge binary |
 | `mojo/` | Mojo | Numeric/analytics kernels (pilot metrics) |
 | `adapters/` | Python | Preliminary LangChain, LangGraph, CrewAI, and BeeAI integration seams |
-| Root | Bazel | Builds, tests, and wires all languages |
+| Root | Bazel | Configuration intended to build, test, and wire the languages; unverified |
 
-Bazel builds `//core:delanmar_bridge`; the Python bridge client communicates with the Rust process through a versioned (`version: 1`) JSON-lines contract (`{"version":1,"op":"list_agents"}`, `{"version":1,"op":"authorize","agent":..,"action":..}`) via `adapters/delanmar_adapters/bridge.py`. Bazel itself does not carry runtime messages.
+The Python bridge client in `adapters/delanmar_adapters/bridge.py` communicates with the Rust process over JSON lines. The strict v2 contract requires a request ID for each operation and, for authorization, an agent, action, resource (`kind` and `id`), and context (`operation` and `purpose`). Responses carry a structured decision and reason; malformed requests and unsupported versions are denied. Bazel itself does not carry runtime messages, and the `//core:delanmar_bridge` build has not been verified.
 
-Phase 1 Increment 1 (identity and authorization contract): the launcher binds the bridge process to one of the 24 stable agent identities over a private inherited descriptor (`--caller-fd`); the `agent` in a request is only a claim and must match the bound caller. Authorization is default-deny with per-agent permission tables; decisions are `allow`, `deny` or `approval_required`. `approval_required` never means allowed, and the nine blueprint actions can never be `allow`. Malformed requests, unsupported versions, unauthenticated callers and policy failure all deny. The production policy grants no permissions for any agent; test fixtures in `core/src/lib.rs` are labeled and are not business permissions.
+Phase 1 identity and authorization work is in progress. Per-agent policy is default-deny; production grants are empty, and test fixtures are not business permissions. Decisions include `allow`, `deny`, and `approval_required`; the latter is not permission to execute. The nine blueprint actions cannot be `allow`. There is no trustworthy caller authentication yet: inherited-descriptor self-assertion has been removed, and the production bridge denies all calls. Resource and context are contract fields, not enforced policy scopes.
 
-Not implemented in Increment 1: approval records and audit (Increment 2), execution broker and resource restrictions (3), framework bypass prevention (4: the Python helper remains voluntary), adversarial certification (5). The inherited-descriptor binding is a first mechanism for a local trusted launcher; it is not verified against a hostile same-user process.
+### Identity boundary and migration
 
-The current policy is a prototype, not an enforced system-wide security boundary: the bridge does not authenticate callers, apply per-agent permissions, execute approved actions, or provide an approval workflow. Some adapter helpers call the gate, but framework execution and tools are not universally constrained by it. The common agent contract and AG2 adapter described in the constitution are not yet implemented.
+The former Python-created pipe conveyed an **identity assertion**, not an authenticated identity: any same-user process could launch a bridge and write `admin` to its own pipe. The binary now ignores that mechanism and cannot establish a caller. A future trusted launcher must authenticate workloads independently, map them to permitted agents, protect its binary and policy, and isolate workloads from the launcher's authority. A Unix socket with peer credentials alone cannot distinguish adversaries sharing one OS user; separate OS identities or equivalent isolation and a reviewed identity mapping are needed. No supported secure deployment or launcher is implemented. `Core::new` accepts a principal from its embedding process and is not an authentication boundary; callers must not supply an untrusted assertion as a principal.
+
+Version 2 is a deliberate breaking migration: version 1 requests and caller bindings are not accepted. Callers must supply the required v2 fields; there is no automatic legacy fallback. IDs and other fields are nonempty ASCII identifiers of at most 128 bytes, using letters, digits, `.`, `_`, `:`, `-`, or `/`; identifiers must not contain secrets or personal data. A structurally valid request's response echoes its request ID; an unparseable request has a null request ID, which the Python client rejects. The client generates a random ID and validates the response version, ID, decision and reason. IDs are for correlation only: replay prevention, timeouts, input line limits, trusted context, resource-level policy, and execution binding are not implemented.
+
+Approval records and workflow, audit, an execution broker, resource/context enforcement, framework bypass prevention, and adversarial certification are not implemented.
+
+The current policy is a prototype, not an enforced system-wide security boundary. LangChain and LangGraph helpers voluntarily call the gate, but framework execution and tools can bypass them; the CrewAI helper uses the roster and does not gate execution. BeeAI is a callable seam, not a verified integration. The common agent contract and AG2 adapter described in the constitution are not yet implemented.
 
 ## Status (verified vs. not)
 
-- Previously verified: Rust core unit tests and bridge via `cargo test` / `cargo run` in `core/`.
+- The historical snapshot below applies only to its stated revision, not the current work in progress.
 - Not verified: Bazel files and rule versions, the Mojo kernel, and all LangChain/LangGraph/CrewAI/BeeAI calls (frameworks are not version-pinned; BeeAI is only a documented seam).
 
-### Local verification snapshot
+### Historical local verification snapshot
 
 On 2026-11-24, against code at revision `c6905aa`, a Linux environment with Rust/Cargo 1.100.0 and Python 3.12.3 produced the following results (commands are run from the repository root):
 
