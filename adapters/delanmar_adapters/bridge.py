@@ -2,13 +2,19 @@
 import json
 import math
 import os
-import queue
+import selectors
 import subprocess
 import threading
+import time
 import uuid
 
 PROTOCOL_VERSION = 2
 MAX_MESSAGE_BYTES = 65536
+APPROVAL_REQUIRED = frozenset({
+    "transfer_money", "issue_payment", "change_banking_details", "sign_legal_agreement",
+    "employment_decision", "exceptional_pricing", "delete_important_records",
+    "change_security_controls", "grant_access",
+})
 
 
 def _unique_object(pairs):
@@ -24,6 +30,8 @@ class Bridge:
     def __init__(self, *, binary=None, timeout=5.0):
         if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("timeout must be a positive finite number")
+        if os.name != "posix":
+            raise RuntimeError("bridge pipe I/O is supported only on POSIX")
         self.binary = binary or os.environ["DELANMAR_BRIDGE"]
         self.timeout = timeout
         self._lock = threading.Lock()
@@ -43,43 +51,66 @@ class Bridge:
             payload = (json.dumps(request, allow_nan=False) + "\n").encode("utf-8")
             if len(payload) > MAX_MESSAGE_BYTES:
                 raise ValueError("request too large")
-            results = queue.Queue(maxsize=1)
-
-            def exchange():
-                try:
-                    view = memoryview(payload)
-                    while view:
-                        written = self._p.stdin.write(view)
-                        if not written:
-                            raise EOFError("bridge stdin closed")
-                        view = view[written:]
-                    line = self._p.stdout.readline(MAX_MESSAGE_BYTES + 1)
-                    if not line.endswith(b"\n") or len(line) > MAX_MESSAGE_BYTES:
-                        raise EOFError("invalid or incomplete bridge response")
-                    results.put((line, None))
-                except Exception as exc:
-                    results.put((None, exc))
-
-            worker = threading.Thread(target=exchange, daemon=True)
-            worker.start()
             try:
-                line, error = results.get(timeout=self.timeout)
-                if error is not None:
-                    raise RuntimeError("bridge transport failed") from error
+                line = self._exchange(payload)
                 if self._p.poll() is not None:
                     raise RuntimeError("bridge process terminated")
                 response = json.loads(line, object_pairs_hook=_unique_object)
                 self._validate_response(response, request)
                 return response
-            except queue.Empty as exc:
-                raise TimeoutError("bridge request timed out") from exc
-            except (ValueError, UnicodeDecodeError, TypeError) as exc:
+            except TimeoutError:
+                raise
+            except (ValueError, UnicodeDecodeError, TypeError, OSError, EOFError) as exc:
                 raise RuntimeError("invalid bridge response") from exc
         except Exception:
             self._shutdown()
             raise
         finally:
             self._lock.release()
+
+    def _exchange(self, payload):
+        deadline = time.monotonic() + self.timeout
+        stdin_fd = self._p.stdin.fileno()
+        stdout_fd = self._p.stdout.fileno()
+        os.set_blocking(stdin_fd, False)
+        os.set_blocking(stdout_fd, False)
+        data = bytearray()
+        view = memoryview(payload)
+        with selectors.DefaultSelector() as selector:
+            selector.register(stdin_fd, selectors.EVENT_WRITE)
+            selector.register(stdout_fd, selectors.EVENT_READ)
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError("bridge request timed out")
+                events = selector.select(remaining)
+                if not events:
+                    raise TimeoutError("bridge request timed out")
+                for key, _ in events:
+                    if key.fd == stdin_fd:
+                        try:
+                            written = os.write(stdin_fd, view)
+                        except BlockingIOError:
+                            continue
+                        if not written:
+                            raise EOFError("bridge stdin closed")
+                        view = view[written:]
+                        if not view:
+                            selector.unregister(stdin_fd)
+                    else:
+                        try:
+                            chunk = os.read(stdout_fd, min(4096, MAX_MESSAGE_BYTES + 1 - len(data)))
+                        except BlockingIOError:
+                            continue
+                        if not chunk:
+                            raise EOFError("bridge stdout closed")
+                        data.extend(chunk)
+                        if len(data) > MAX_MESSAGE_BYTES:
+                            raise ValueError("response too large")
+                        if b"\n" in data:
+                            if not data.endswith(b"\n") or data.count(b"\n") != 1 or view:
+                                raise ValueError("unexpected bridge response")
+                            return bytes(data)
 
     @staticmethod
     def _validate_response(response, request):
@@ -105,6 +136,9 @@ class Bridge:
         }
         if reason not in reasons[decision]:
             raise ValueError("decision and reason disagree")
+        if (request.get("op") == "authorize" and decision == "allow"
+                and request.get("action") in APPROVAL_REQUIRED):
+            raise ValueError("consequential action cannot be allowed")
         if principal is not None and request.get("op") == "authorize" and principal != "agent:" + request.get("agent", ""):
             raise ValueError("principal does not match agent")
         if "agents" in response:

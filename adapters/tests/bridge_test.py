@@ -4,12 +4,13 @@ import subprocess
 import sys
 import threading
 import time
+import types
 import unittest
 from unittest.mock import patch
 
-from delanmar_adapters.bridge import Bridge
+from delanmar_adapters.bridge import APPROVAL_REQUIRED, Bridge
 from delanmar_adapters.beeai import beeai_handler
-from delanmar_adapters.frameworks import guarded
+from delanmar_adapters.frameworks import guarded, langchain_tool, langgraph_gated_graph
 
 
 RESOURCE = {"kind": "fixture", "id": "one"}
@@ -54,6 +55,52 @@ class BridgeTest(unittest.TestCase):
         denied = beeai_handler(self.b, "admin", "fixture", lambda: 1 / 0,
                                resource=RESOURCE, context=CONTEXT)
         self.assertEqual(denied()["status"], "deny")
+
+    def test_stubbed_langchain_and_langgraph_denials_do_not_execute(self):
+        called = []
+
+        class FakeTool:
+            @staticmethod
+            def from_function(**kw):
+                return kw["func"]
+
+        class FakeGraph:
+            def __init__(self, _state):
+                self.nodes = {}
+
+            def add_node(self, name, fn):
+                self.nodes[name] = fn
+
+            def set_entry_point(self, _name):
+                pass
+
+            def add_conditional_edges(self, _name, fn):
+                self.route = fn
+
+            def add_edge(self, *_args):
+                pass
+
+            def compile(self):
+                return self
+
+            def invoke(self):
+                state = self.nodes["gate"]({})
+                return self.nodes[self.route(state)](state)
+
+        modules = {
+            "langchain_core": types.ModuleType("langchain_core"),
+            "langchain_core.tools": types.SimpleNamespace(StructuredTool=FakeTool),
+            "langgraph": types.ModuleType("langgraph"),
+            "langgraph.graph": types.SimpleNamespace(END="end", StateGraph=FakeGraph),
+        }
+        with patch.dict(sys.modules, modules):
+            tool = langchain_tool(self.b, "admin", "fixture", lambda **kw: called.append(kw),
+                                  "fixture", resource=RESOURCE, context=CONTEXT)
+            self.assertEqual(tool(resource="tool-value")["status"], "deny")
+            graph = langgraph_gated_graph(self.b, "admin", "fixture", lambda: called.append(True),
+                                          resource=RESOURCE, context=CONTEXT)
+            self.assertEqual(graph.invoke()["result"], "denied")
+        self.assertEqual(called, [])
 
     def test_constructor_cannot_claim_caller(self):
         with self.assertRaises(TypeError):
@@ -150,6 +197,19 @@ class BridgeFailureTest(unittest.TestCase):
                         f"r={variant!r}; r.update(version=2,request_id=req['request_id']); "
                         "print(json.dumps(r),flush=True); time.sleep(10)")
                 self.assert_gate_fails_closed(self.fake_bridge(code))
+
+    def test_incompatible_bridge_cannot_allow_consequential_actions(self):
+        for action in APPROVAL_REQUIRED:
+            with self.subTest(action=action):
+                bridge = self.fake_bridge(
+                    "import sys,json,time; req=json.loads(sys.stdin.readline()); "
+                    "print(json.dumps(dict(version=2,request_id=req['request_id'],decision='allow',"
+                    "reason='permitted',principal='agent:admin')),flush=True); time.sleep(10)"
+                )
+                called = []
+                with self.assertRaises(RuntimeError):
+                    guarded(bridge, "admin", action, RESOURCE, CONTEXT, lambda: called.append(True))
+                self.assertEqual(called, [])
 
     def test_timeout_fails_closed_and_reaps_process(self):
         bridge = self.fake_bridge("import time; time.sleep(10)")

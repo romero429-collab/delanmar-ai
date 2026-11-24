@@ -23,7 +23,7 @@ def langchain_tool(bridge: Bridge, agent: str, action: str, fn, description: str
 
 
 def langgraph_gated_graph(bridge: Bridge, agent: str, action: str, fn, *, resource, context):
-    """Graph: gate -> (execute | await_human)."""
+    """Graph: gate -> (execute | await_human | deny)."""
     from typing import TypedDict
     from langgraph.graph import END, StateGraph
 
@@ -35,12 +35,15 @@ def langgraph_gated_graph(bridge: Bridge, agent: str, action: str, fn, *, resour
     g.add_node("gate", lambda s: {"decision": bridge.check_action(agent, action, resource=resource, context=context)})
     g.add_node("execute", lambda s: {"result": fn()})
     g.add_node("await_human", lambda s: {"result": "pending human approval"})
+    g.add_node("deny", lambda s: {"result": "denied"})
     g.set_entry_point("gate")
     g.add_conditional_edges(
-        "gate", lambda s: "execute" if s["decision"] == "allow" else "await_human"
+        "gate", lambda s: ("execute" if s["decision"] == "allow" else
+                          "await_human" if s["decision"] == "approval_required" else "deny")
     )
     g.add_edge("execute", END)
     g.add_edge("await_human", END)
+    g.add_edge("deny", END)
     return g.compile()
 
 
