@@ -7,6 +7,8 @@ proposed boundary is single-host only. Network and multi-tenant deployment are
 unsupported. No production permissions, business workloads, approvals,
 resource-scoped grants or execution broker are authorized by this document.
 This is not Phase 1 acceptance, production readiness or independent certification.
+The approved identity-boundary direction does not select a VM host or approve a
+long-term local-first or hybrid product architecture.
 
 ## Increment 1 milestone and evidence
 
@@ -106,7 +108,36 @@ The launcher is trusted because of the protected host setup, not because a
 process calls itself a launcher. The precise deployment, account allocation
 and isolation mechanisms require implementation review.
 
-## Initial Fedora Cloud VM direction
+## Laboratory choice and long-term direction
+
+Windows remains the primary development and administration workstation. A
+hybrid product with a local-first security core and optional cloud resources is
+a **proposal**, not an owner decision. The Fedora VM is a laboratory host, not
+a permanent product dependency; a cloud or physical deployment would need its
+own boundary review and verification. WSL2 may support ordinary development,
+but is not automatically equivalent to the isolated VM laboratory.
+
+Compare these candidates before selecting a laboratory. Neither candidate has
+been provisioned or approved by this comparison.
+
+| Area | Local VM on Windows | Google Cloud VM |
+|---|---|---|
+| Trust boundary | Depends on the Windows host, hypervisor, their administrators and configuration as well as the guest. Host compromise can compromise the laboratory. | Depends on Google Cloud, hypervisor, project IAM and administrators as well as the guest. A cloud VM is not inherently a stronger boundary. |
+| Feasibility | The owner's Windows edition, hardware virtualization, memory, disk, host security, hypervisor support and capacity are unknown. Verify them before selection; no hypervisor is selected. | The candidate size, region, image availability, account permissions and quotas must be verified. |
+| Administration | A protected local console or tightly restricted host-to-guest SSH are candidates; select and verify the host and guest access controls. Avoid exposing SSH to the LAN. | No external IP; proposed IAP-only SSH with OS Login, least-privilege IAM and MFA where available. Compatibility must be established for the chosen image. |
+| Updates and workload egress | A reviewed update-only route or verified offline package transfer is needed. A host-only network does not by itself prove workload egress is blocked. | IAP provides inbound access, not updates. Select and price filtered outbound access; Cloud NAT alone does not filter destinations. |
+| Cost and operation | No cloud VM charge, but local electricity, hardware capacity, licenses, backup and any supporting services remain unpriced. | Compute, disk and supporting network services incur charges; an itemized estimate is still required. |
+
+For either option, isolate the laboratory from business systems, do not expose
+application services, and verify host-enforced restrictions rather than relying
+on the workload's cooperation. The test scope is one Rust authorization service
+and two synthetic workloads under separate UIDs, with local Unix-domain sockets
+and kernel peer credentials. No customer data, business grants or privileged
+workload execution is permitted. The host administration and trusted launcher
+may require administrative privilege; that is distinct from granting privilege
+to the workloads.
+
+## Initial Fedora Cloud VM candidate
 
 The proposed initial test platform is a dedicated, terminal-only Fedora Cloud
 VM on Google Cloud Compute Engine, using systemd, cgroups and SELinux enforcing.
