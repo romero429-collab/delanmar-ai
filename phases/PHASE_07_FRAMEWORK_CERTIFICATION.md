@@ -14,8 +14,8 @@ Certify the frameworks used by the pilot and independently certify all five fram
 
 ## Certification tracks
 
-- **Pilot certification:** Every framework actually used by the selected pilot workflow must pass compatibility, authorization and security tests. Frameworks not used by that workflow are not pilot prerequisites. No exception may bypass Rust Core authorization.
-- **Platform certification:** Each of LangChain, LangGraph, CrewAI, BeeAI and AG2 must independently pass compatibility, authorization and security tests before that framework is enabled for operational use. Full platform certification requires all five, including a real AG2 adapter and BeeAI beyond its callable seam.
+- **Pilot certification:** Every framework actually used by the selected pilot workflow must pass compatibility, authorization and security tests. Frameworks not used by that workflow are not pilot prerequisites. Pilot certification permits use within the approved supervised pilot before full platform certification, subject to all applicable readiness gates. No exception may bypass Rust Core authorization.
+- **Platform certification:** Each of LangChain, LangGraph, CrewAI, BeeAI and AG2 must independently pass compatibility, authorization and security tests before that framework is enabled for operational use beyond the approved supervised pilot. Full platform certification requires all five, including a real AG2 adapter and BeeAI beyond its callable seam.
 
 Documenting these requirements does not complete either track. Each track requires its own evidence and human-owner approval.
 
