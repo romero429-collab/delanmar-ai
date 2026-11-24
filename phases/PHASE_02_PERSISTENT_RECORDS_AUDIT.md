@@ -20,7 +20,11 @@ Phase 1.
 Pilot Phase 1 in the [OpenWorks pilot plan](../strategy/DELANMAR_OPENWORKS_PILOT_SETUP.md) (business track; numbering is not equivalent).
 
 ## Acceptance
-All deliverables above meet the applicable maturity level under the acceptance standard, with evidence, negative tests for authorization where relevant, and human-owner approval.
+- **Minimum maturity: Tested** for records, access controls, audit, secrets and recovery.
+- Demonstrate persistent agent and task records, permission-controlled business context and audit history, including recorded approvals and consequential actions.
+- Verify secure secret handling, retention and deletion policies, and a backup/restore procedure that recovers representative records and audit history.
+- Test permitted record access and changes; deny unauthorized reads, writes and deletion, including attempts to bypass access controls.
+- Record revision, environment, commands or procedure, results, limitations and reviewer; update the implementation status and obtain human-owner approval.
 
 ## Governing rule
 No agent may exercise authority that the Rust Core has not explicitly granted.
