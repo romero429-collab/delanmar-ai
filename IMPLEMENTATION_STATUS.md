@@ -4,7 +4,7 @@ Authoritative inventory of what exists, what is tested and what is unverified. M
 
 | Component | Implemented | Tested | Piloted | Production-ready | Notes |
 |---|---|---|---|---|---|
-| Rust core (`core/`): 24-agent roster, shared action policy, JSON-lines binary | Yes | Yes (unit tests, per snapshot) | No | No | Prototype. No caller authentication, per-agent permissions, durable audit or approval workflow. Preserve and upgrade (Phase 1). |
+| Rust core (`core/`): 24-agent roster, shared action policy, JSON-lines binary | Yes | Yes (unit tests, per snapshot) | No | No | Phase 1 Increment 1: versioned contract, launcher-bound caller identity, default-deny per-agent authorization (no business permissions granted). No approval records, durable audit, execution broker or bypass prevention yet. |
 | Python bridge (`adapters/delanmar_adapters/bridge.py`) | Yes | Yes (bridge tests, per snapshot) | No | No | Subprocess client; no versioned contract; process cleanup warnings. |
 | LangChain, LangGraph, CrewAI helpers | Yes | Unverified | No | No | Unpinned; not constrained by the authorization path (Phase 7). |
 | BeeAI | Callable seam only | Unverified | No | No | Must move beyond seam (Phase 7). |
