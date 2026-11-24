@@ -67,6 +67,7 @@ Collect and record actual baseline values **before automation begins**. The defi
 | Rework rate | Cases requiring correction or repeated work / eligible cases | OWNER INPUT REQUIRED |
 | Data accuracy | Sampled records meeting defined accuracy checks / sampled records | OWNER INPUT REQUIRED |
 | Escalation rate | Cases routed to a human for review / eligible cases | OWNER INPUT REQUIRED |
+| Customer feedback | Structured feedback collected with appropriate consent | OWNER INPUT REQUIRED |
 | Cost per completed workflow | Included operating cost / completed cases | OWNER INPUT REQUIRED |
 
 Complete one row per metric, identifying evidence without including private records here.
@@ -75,7 +76,7 @@ Complete one row per metric, identifying evidence without including private reco
 |---|---|---|---|---|---|---|---|
 | OWNER INPUT REQUIRED | OWNER INPUT REQUIRED | OWNER INPUT REQUIRED | OWNER INPUT REQUIRED | OWNER INPUT REQUIRED | OWNER INPUT REQUIRED | OWNER INPUT REQUIRED | OWNER INPUT REQUIRED |
 
-For time measures specify working versus elapsed time, start/stop events and aggregation; for accuracy define checks and sampling; for cost define included costs and allocation. If a denominator is zero or data is unavailable, record the result as unavailable and explain rather than inventing a value. Record the measurement method and limitations before comparing later results.
+For time measures specify working versus elapsed time, start/stop events and aggregation; for accuracy define checks and sampling; for feedback define the collection method and consent; for cost define included costs and allocation. If a denominator is zero or data is unavailable, record the result as unavailable and explain rather than inventing a value. Record the measurement method and limitations before comparing later results.
 
 ## 6. Exclusions, decisions and review
 
