@@ -1,58 +1,44 @@
 # Delanmar AI Build Roadmap
 
-**Status:** Proposed execution roadmap; no phase is complete solely because it is documented.
+**Status:** Master twelve-phase engineering plan (revised). No phase is complete because it is documented.
 
-This is the master execution plan for the existing repository. The [Core Architecture v1.0](DELANMAR_CORE_ARCHITECTURE_v1.0.md) remains the primary technical authority, the [workforce blueprint](strategy/DELANMAR_AI_WORKFORCE_v1.1.md) defines roles and approval requirements, and the human owner retains final authority. Resolve conflicts in favor of those authorities; changes to the constitution require its explicit version update and rationale. Record changes to this roadmap and phase gates with their rationale.
+This is the engineering track. The [OpenWorks pilot plan](strategy/DELANMAR_OPENWORKS_PILOT_SETUP.md) is the separate business-delivery track (its nine pilot phases 0-8 are unchanged and are not equivalent to these numbers). The [Core Architecture v1.0](DELANMAR_CORE_ARCHITECTURE_v1.0.md) remains the technical authority; the human owner retains final authority.
 
-## Baseline
+Related documents: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) (authoritative inventory) and [PHASE_ACCEPTANCE_STANDARD.md](PHASE_ACCEPTANCE_STANDARD.md) (completion rules).
 
-| Area | Present in this repository | Maturity and limitations |
+## Governing rule
+
+**No agent may exercise authority that the Rust Core has not explicitly granted.**
+
+LangChain, LangGraph, CrewAI, BeeAI, AG2, Python tools and future integrations must all operate through the same authorization contract. A framework integration that can bypass that contract is not an accepted integration.
+
+## Preserve existing work
+
+A functioning Rust prototype (`core/`) and Python bridge (`adapters/`) already exist. Build around and upgrade them; do not restart.
+
+## Phases
+
+| Phase | Name | Primary objective |
 |---|---|---|
-| Governance and pilot | Constitution, workforce blueprint, and [OpenWorks pilot plan](strategy/DELANMAR_OPENWORKS_PILOT_SETUP.md) | Planning and target architecture; not evidence of deployment |
-| Rust core | `core/` roster, shared action policy, JSON-lines binary and unit tests | Prototype; no caller authentication, per-agent permissions, durable audit or approval workflow |
-| Runtime bridge | Rust binary and Python subprocess client in `adapters/` | Prototype; no versioned contract or enforced security boundary |
-| Compute | `mojo/metrics.mojo` | Initial numeric example; interoperability and toolchain not verified |
-| Build | `MODULE.bazel` and component build definitions | Configuration exists; cross-language builds and reproducibility not verified |
-| Frameworks | Python LangChain, LangGraph and CrewAI helpers; BeeAI seam | Preliminary, unverified; AG2 absent and frameworks not pinned |
-| Workforce and applications | 24 roster entries, including the Executive Personal Assistant | No operational employees or Command Center established |
+| [0](phases/PHASE_00_BASELINE_BOUNDARIES.md) | Baseline & Boundaries | Define scope, business workflows, owners and measurements. |
+| [1](phases/PHASE_01_SECURITY_CORE.md) | Security & Core Foundation | Harden Rust identity, permissions and human approval. |
+| [2](phases/PHASE_02_PERSISTENT_RECORDS_AUDIT.md) | Persistent Records & Auditability | Establish durable memory, records, logs and recovery. |
+| [3](phases/PHASE_03_EXECUTIVE_OPERATIONS.md) | Executive & Operations Layer | Build the Executive Assistant and operational coordination. |
+| [4](phases/PHASE_04_PROJECT_COORDINATION.md) | Project Coordination | Implement task management, dependencies and project tracking. |
+| [5](phases/PHASE_05_COMMUNICATION_WORKFORCE.md) | Communication Workforce | Introduce selected communication agents. |
+| [6](phases/PHASE_06_INTERNAL_OPERATIONS_WORKFORCE.md) | Internal Operations Workforce | Introduce selected internal operations agents. |
+| [7](phases/PHASE_07_FRAMEWORK_CERTIFICATION.md) | Framework Certification & Integration | Validate all five framework adapters. |
+| [8](phases/PHASE_08_BUSINESS_INTEGRATIONS.md) | Business Integrations | Connect approved business systems and external services. |
+| [9](phases/PHASE_09_CONTROLLED_TESTING_PRODUCTION_OPS.md) | Controlled Testing & Production Operations | Test end-to-end workflows, reliability, monitoring and recovery. |
+| [10](phases/PHASE_10_SUPERVISED_PILOT.md) | Supervised Pilot & Evaluation | Operate selected workflows and measure real outcomes. |
+| [11](phases/PHASE_11_REUSABLE_PACKAGING.md) | Reusable Packaging & Expansion | Package validated capabilities and prepare evidence-based expansion. |
 
-The [implementation status](docs/ARCHITECTURE.md) records earlier Rust verification and the other verification limits. A roster entry, interface sketch, or framework tool is not an operational agent or an authorization boundary. Verify the current revision and environment before changing any status.
+## Dependencies
 
-## Phases and gates
+Phase 0 -> Phase 1 -> Phase 2 -> Phase 3 -> Phase 4 -> Phases 5-6 (Communication and Internal Operations) -> Phases 7-8 (Framework Certification and Business Integrations) -> Phase 9 -> Phase 10 -> Phase 11.
 
-| Phase | Scope | Initial status | Exit deliverable |
-|---|---|---|---|
-| [00](phases/PHASE_00_CONSTITUTION.md) | Engineering constitution | Largely established; approval of this roadmap pending | Approved authority and execution roadmap |
-| [01](phases/PHASE_01_INFRASTRUCTURE.md) | Development infrastructure | Partially established | Repeatable environment and evidence-backed baseline |
-| [02](phases/PHASE_02_RUST_CORE.md) | Rust core hardening | Prototype exists | Trusted, tested core controls |
-| [03](phases/PHASE_03_AGENT_CONTRACT.md) | Common agent contract | Not implemented | Versioned standard for agents and adapters |
-| [04](phases/PHASE_04_RUNTIME_BRIDGE.md) | Runtime communication | Prototype exists | Reliable, governed and versioned boundary |
-| [05](phases/PHASE_05_MOJO_KERNEL.md) | Mojo compute kernel | Initial example exists | Verified compute capability and interface |
-| [06](phases/PHASE_06_BAZEL_BUILD.md) | Bazel build system | Configuration exists | Reproducible builds and tests for supported components |
-| [07](phases/PHASE_07_FRAMEWORK_ADAPTERS.md) | Adapter and framework integrations | Preliminary seams exist; AG2 absent | Interchangeable, tested integrations |
-| [08](phases/PHASE_08_ALPHA_EMPLOYEE.md) | First operational employee | Not started | Delanmar Alpha 0.1 |
-| [09](phases/PHASE_09_WORKFORCE.md) | Full AI workforce | Roster exists, employees not operational | Governed 24-agent workforce |
-| [10](phases/PHASE_10_ORCHESTRATION.md) | Business orchestration and Command Center | Not started | Manageable AI business operation |
-| [11](phases/PHASE_11_PILOT_PRODUCTION.md) | OpenWorks pilot and production readiness | Pilot planning documented | Measured pilot and production-ready deployment process |
+Some work can proceed in parallel (for example, Phase 1 Rust security design alongside Phase 0, and Phase 7 alongside Phases 2-6), but later phases cannot pass their acceptance gates until required dependencies are validated.
 
-## Execution and dependencies
+## Next development cycle
 
-1. Establish Phase 0 authority and Phase 1 baseline first. Phase 1 verifies available tools and CI; Phase 6 later establishes the supported Bazel build and test gate.
-2. Harden core authority in Phase 2, define the common contract in Phase 3, and apply both at the runtime boundary in Phase 4. Work may overlap, but adapters must not claim compliance before the relevant gates pass.
-3. Phases 5 and 6 can proceed alongside core and contract work after the infrastructure baseline. Neither Bazel nor Mojo is a runtime authorization service. Any Mojo use in Alpha requires its verified interface; Alpha need not manufacture a compute workload merely to use Mojo.
-4. Phase 7 follows the contract and bridge. Certify one suitable framework for Alpha before Phase 8; complete and test all five before closing Phase 7. Alpha does not need to wait for all five. Alpha additionally requires the core and its supported build/test path.
-5. Expand incrementally after Alpha. Phase 9 establishes specialized employees; Phase 10 supplies broader coordination and oversight. Integrate these iteratively rather than assuming all agents must be deployed together. Phase 11 requires the controls and operational capabilities relevant to the selected pilot; full workforce and Command Center completion are required for the full program exit, not for an earlier limited, human-supervised pilot.
-
-The OpenWorks plan has its own pilot phases 0–8; their numbering describes pilot rollout, not these platform build phases. Preserve its staged rollout and baseline/evaluation gates. Do not equate similarly numbered phases.
-
-## Delanmar Alpha 0.1
-
-The first vertical slice is the Executive Personal Assistant. A human submits a bounded task; the core authenticates the caller, recognizes the agent and authorizes its specific capabilities; a certified Python framework adapter executes an authorized task; the result crosses the versioned bridge, is validated, and the core records task and action outcomes. Restricted actions enter a recorded human approval workflow and do not execute without a valid approval and reauthorization. Denied, malformed, unavailable, or bypassed decisions fail closed.
-
-Acceptance requires an end-to-end test from human instruction through execution to validated, audited completion, plus negative tests for unauthorized and approval-required actions. Drafting, task organization, correspondence preparation, and coordination are in scope only within explicitly granted capabilities; sending communications or making commitments requires the applicable policy and approval. The Alpha slice does not establish that the remaining workforce is operational.
-
-## Evidence and completion
-
-Every phase specification identifies scope, reuse, work, dependencies, tests, acceptance, risks, status and handoff. Maintain evidence tied to a revision, environment, commands, results, limitations and responsible reviewer. Distinguish implemented, locally tested, integrated, piloted and production-ready. Record failures and unresolved risks instead of treating skipped or unavailable tests as passes. Phase closure requires its acceptance evidence and human-owner approval; document approved exceptions without silently weakening security gates.
-
-Immediate next steps: approve Phase 0, establish the Phase 1 environment and verification baseline, and only then prioritize implementation against the gates.
+Phase 0 is the first active work package; Phase 1 Rust security design begins in parallel. Two synchronized tracks: engineering (this roadmap) builds the platform; business (the pilot plan) proves it solves real problems.

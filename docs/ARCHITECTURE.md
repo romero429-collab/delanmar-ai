@@ -30,4 +30,4 @@ On 2026-11-24, against code at revision `c6905aa`, a Linux environment with Rust
 | `bazel --version` | Timed out after 12 seconds; no Bazel build or test was verified. |
 | Mojo | `mojo` executable unavailable; no Mojo test was run. |
 
-This snapshot does not verify framework calls, CI, reproducibility, security enforcement, or other environments. See [Phase 1](../phases/PHASE_01_INFRASTRUCTURE.md) for the remaining baseline work.
+This snapshot does not verify framework calls, CI, reproducibility, security enforcement, or other environments. See [IMPLEMENTATION_STATUS.md](../IMPLEMENTATION_STATUS.md) and [Phase 1](../phases/PHASE_01_SECURITY_CORE.md) for the remaining work.

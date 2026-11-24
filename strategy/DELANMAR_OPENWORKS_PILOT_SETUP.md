@@ -1,6 +1,6 @@
 # Delanmar OpenWorks Pilot Setup
 
-**Status:** Proposed pilot plan  
+**Status:** Proposed pilot plan (business track; engineering track: [BUILD_ROADMAP.md](../BUILD_ROADMAP.md))  
 **Pilot environment:** Delanmar  
 **Purpose:** Build, test, measure, and document a practical AI-assisted small-business operating model.
 
