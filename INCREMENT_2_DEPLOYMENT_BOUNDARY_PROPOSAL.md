@@ -7,6 +7,8 @@ proposed boundary is single-host only. Network and multi-tenant deployment are
 unsupported. No production permissions, business workloads, approvals,
 resource-scoped grants or execution broker are authorized by this document.
 This is not Phase 1 acceptance, production readiness or independent certification.
+The approved identity-boundary direction does not select a VM host or approve a
+long-term local-first or hybrid product architecture.
 
 ## Increment 1 milestone and evidence
 
@@ -106,7 +108,63 @@ The launcher is trusted because of the protected host setup, not because a
 process calls itself a launcher. The precise deployment, account allocation
 and isolation mechanisms require implementation review.
 
-## Initial Fedora Cloud VM direction
+## Laboratory choice and long-term direction
+
+Windows remains the primary development and administration workstation. A
+hybrid product with a local-first security core and optional cloud resources is
+a **proposal**, not an owner decision. The Fedora VM is a laboratory host, not
+a permanent product dependency; a cloud or physical deployment would need its
+own boundary review and verification. WSL2 may support ordinary development,
+but is not automatically equivalent to the isolated VM laboratory.
+
+Compare these candidates before selecting a laboratory. Neither candidate has
+been provisioned or approved by this comparison.
+
+| Area | Local VM on Windows | Google Cloud VM |
+|---|---|---|
+| Trust boundary | Depends on the Windows host, hypervisor, their administrators and configuration as well as the guest. Host compromise can compromise the laboratory. | Depends on Google Cloud, hypervisor, project IAM and administrators as well as the guest. A cloud VM is not inherently a stronger boundary. |
+| Feasibility | The owner's Windows edition, hardware virtualization, memory, disk, host security, hypervisor support and capacity are unknown. Verify them before selection; no hypervisor is selected. | The candidate size, region, image availability, account permissions and quotas must be verified. |
+| Administration | A protected local console or tightly restricted host-to-guest SSH are candidates; select and verify the host and guest access controls. Avoid exposing SSH to the LAN. | No external IP; proposed IAP-only SSH with OS Login, least-privilege IAM and MFA where available. Compatibility must be established for the chosen image. |
+| Updates and workload egress | A reviewed update-only route or verified offline package transfer is needed. A host-only network does not by itself prove workload egress is blocked. | IAP provides inbound access, not updates. Select and price filtered outbound access; Cloud NAT alone does not filter destinations. |
+| Cost and operation | No cloud VM charge, but local electricity, hardware capacity, licenses, backup and any supporting services remain unpriced. | Compute, disk and supporting network services incur charges; an itemized estimate is still required. |
+
+For either option, isolate the laboratory from business systems, do not expose
+application services, and verify host-enforced restrictions rather than relying
+on the workload's cooperation. The test scope is one Rust authorization service
+and two synthetic workloads under separate UIDs, with local Unix-domain sockets
+and kernel peer credentials. No customer data, business grants or privileged
+workload execution is permitted. The host administration and trusted launcher
+may require administrative privilege; that is distinct from granting privilege
+to the workloads.
+
+### Public-source observations
+
+These observations were researched on 2026-11-24 from indexed search excerpts;
+direct source-page retrieval was unavailable. Recheck the live pages before
+relying on them. They were not verified on the owner's workstation or a
+deployed VM:
+
+- [Fedora's Cloud download page](https://fedoraproject.org/cloud/download/)
+  lists Fedora Cloud 45, including an x86_64 QEMU image. It is a candidate,
+  not a selected or verified image for either host. Check the
+  [release lifecycle](https://docs.fedoraproject.org/en-US/releases/),
+  [signed checksum and download](https://docs.fedoraproject.org/en-US/fedora/security-team/cryptography/signatures/),
+  image format and host-specific compatibility at selection time; an image
+  listed by Fedora does not establish Google guest-agent or OS Login support.
+- [Microsoft's Hyper-V requirements](https://learn.microsoft.com/en-us/windows-server/virtualization/hyper-v/host-hardware-requirements)
+  include hardware virtualization and SLAT. Hyper-V is only a possible local
+  candidate; the Windows edition, available features, host capacity and guest
+  compatibility have not been checked.
+- Google's [OS catalog](https://cloud.google.com/compute/docs/images/os-details)
+  lists Fedora CoreOS images; Fedora Cloud Base availability as a public image
+  was not established. A custom-image path may be necessary and needs its own
+  provenance, guest-environment and support review. Google explicitly excludes
+  CoreOS from OS Login; do not treat it as an interchangeable fallback.
+- [Google's IAP documentation](https://cloud.google.com/iap/docs/using-tcp-forwarding)
+  describes encrypted TCP forwarding and its access controls; the proposed
+  ingress rule and IAM must still be validated for the chosen instance.
+
+## Initial Fedora Cloud VM candidate
 
 The proposed initial test platform is a dedicated, terminal-only Fedora Cloud
 VM on Google Cloud Compute Engine, using systemd, cgroups and SELinux enforcing.
@@ -156,6 +214,69 @@ Separate provisioning approval is required after image, access, networking and
 budget gates are resolved. Runtime implementation needs a further separate
 approval. VM evidence applies only to the tested configuration, not to future
 physical hardware; independently review and verify any migration.
+
+## Decision and gate record
+
+This is a pre-provisioning review, not evidence that the planned controls
+operate. A human owner must select the laboratory and explicitly decide whether
+to adopt hybrid/local-first as the long-term direction. Until then both remain
+open. No independent reviewer has approved the boundary in this record.
+
+| Gate | State and evidence needed before provisioning |
+|---|---|
+| Environment | **Open.** Record the chosen host and hypervisor or cloud project/region, supported Fedora release, exact image identifier and provenance, signed checksum verification method, and expected kernel, systemd and SELinux configuration. Confirm host capacity or cloud availability and image compatibility. |
+| Trust boundary | **Open.** Obtain independent review of the protected launcher, service, UID inventory and registry, socket and filesystem permissions, process/IPC isolation, descriptor handling and lifecycle/revocation design below. Identify the reviewer and unresolved risks; neither a design nor `SO_PEERCRED` alone proves enforcement. |
+| Access and egress | **Open.** Specify the Windows administration path and recovery access, authenticated administrators, firewall rules and update destinations. Demonstrate in the design how workload traffic is denied even when the host can update. For cloud, verify IAP, OS Login, image guest support, IAM, service-account choice and filtered outbound path together. For local, document host-only or other network topology and how it avoids LAN exposure and unintended forwarding. |
+| Budget | **Open.** Record dated, sourced prices and usage assumptions for the selected candidate, all supporting services and taxes, plus budget owner approval. Complete the estimate below and confirm it is at or below $50/month; approximately $25 is the target. An alert is not a spending cap. |
+| Evidence and approval | **Open.** Record the selected configuration, decision owner, independent reviewer, evidence location, known limitations and explicit provisioning approval. Runtime implementation requires a separate explicit approval; neither approval closes Phase 1 or approves production security. |
+
+Pre-provisioning checks establish that a specific configuration is feasible and
+reviewed; they cannot establish actual enforcement. After separately approved
+provisioning, record the installed image and artifact hashes, kernel, systemd,
+SELinux enforcing state, account and socket settings, network paths and
+administrative access, then verify them on the actual VM. Runtime-dependent
+adversarial tests below can only follow separate runtime authorization and
+implementation. A mismatch or failed control stops the experiment for review,
+not an automatic exception.
+
+### Cost worksheet
+
+The amounts are deliberately **unverified**, not zero. Capture the date,
+currency, source, region, machine and disk SKUs, hours/month, storage and
+network usage, and pricing assumptions for each selected option. Include
+one-time setup costs separately and disclose uncertainty.
+
+| Cost component | Local VM | Cloud VM |
+|---|---|---|
+| Compute / host capacity | Incremental hardware, licensing and electricity: not estimated | VM size and running hours: not estimated |
+| Storage and recovery | Disk capacity, backup and replacement: not estimated | Boot disk, snapshots and backup, including stopped VM storage: not estimated |
+| Access, filtering and networking | Network and update-transfer/supporting service costs: not estimated | IAP, filtering proxy, NAT if needed, addresses, data processing and egress: not estimated |
+| Operations | Monitoring, logs and other supporting services: not estimated | Monitoring, logs and other supporting services: not estimated |
+| Taxes and fees | Not estimated | Not estimated |
+| Total monthly and one-time cost | Unknown; budget gate open | Unknown; budget gate open |
+
+**Cloud cost warning, not a quote:** A
+[third-party estimate](https://calculator.holori.com/gcp/vm/e2-standard-2),
+indexed as of 2026-11-04 and found on 2026-11-24, lists `e2-standard-2` in `us-central1` at approximately
+$0.067/hour on demand. At 730 hours this is about $48.91/month for compute.
+Google's [disk pricing](https://cloud.google.com/compute/disks-image-pricing)
+gives an example equivalent to $0.04/GB-month for US standard persistent disk;
+40 GB at that rate is $1.60/month. The illustrative subtotal is therefore
+about **$50.51/month** before networking, proxy, backups, logs, taxes and other
+costs. These are not verified project-specific prices or a complete estimate;
+use the [Google Cloud pricing calculator](https://cloud.google.com/products/calculator)
+and current regional SKUs to confirm. The proposed always-on size cannot be
+assumed to meet the ceiling; a different size or schedule needs feasibility and
+security review, and stopped storage may still be billed.
+
+For comparison, Google's
+[Secure Web Proxy pricing](https://cloud.google.com/secure-web-proxy/pricing)
+lists a Standard gateway at $1.25/hour plus $0.0193/GiB processed. At 730 hours
+the gateway alone would be $912.50/month before traffic and other costs. This
+always-on managed option is incompatible with the ceiling under those
+assumptions; no alternative egress solution has been selected or approved.
+All prices above were obtained from search excerpts, not a project-specific
+quote; recheck current regional rates and billing terms before a decision.
 
 ## Socket, credentials and isolation evaluation
 
@@ -302,6 +423,7 @@ limitation rather than claiming revocation prevents its use.
 | Lifecycle and reuse | Stop/revoke B while connected and with requests in flight: no subsequent decision uses B's old binding. Initial UID reuse is refused. Future reuse testing must include surviving children and retained descriptors, and demonstrate refusal until cleanup and that old connections never become the new generation. Repeat across service and host restart. Test previously returned decisions separately and record that this boundary cannot retract them. |
 | Failure injection | Independently break credential lookup, registry validation, mapping acknowledgement, policy availability, isolation setup, socket creation, service/control-channel availability and response delivery. For every case, no workload starts unbound and no affected request produces an allow or synthetic effect. |
 | Namespace and concurrency | Exercise configured namespace, capability, setuid and supplementary-group escape attempts and race connect/request against revoke/re-register. No foreign UID is accepted and no stale or ambiguous mapping produces an allow. Repeat races under load and report iteration counts. |
+| Local VM baseline, if selected | Verify actual Windows host and hypervisor, guest image and configuration, administrative access, update path and workload egress restrictions. Verify that the VM and its management interfaces are not unintentionally exposed to the LAN. |
 | Cloud baseline | Verify the actual image, IAM and OS Login, IAP-only ingress, proxy and egress restrictions, SELinux, accounts, protected files and sockets, descriptor inheritance and cgroup settings. Record failures; intended settings alone are not evidence. |
 
 For each run record the repository revision and artifact hashes, Linux/kernel
@@ -320,6 +442,8 @@ tested identity boundary, not Phase 1 acceptance or production readiness.
 
 - Which supported Fedora Cloud image, kernel, systemd configuration and
   SELinux profile will be selected, and how will they be independently verified?
+- Does the owner adopt hybrid/local-first, and which local or cloud laboratory
+  meets the gates given the actual Windows workstation and available budget?
 - Can OS Login and IAP work with that image and no attached service account?
   Which approved outbound proxy, destinations, regional prices and budget controls
   fit within the $25 target and $50 maximum?
