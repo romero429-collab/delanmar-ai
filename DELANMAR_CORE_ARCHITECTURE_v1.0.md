@@ -1,6 +1,7 @@
 # Delanmar Core Architecture v1.0
 
-**Status:** Foundational engineering constitution and target architecture  
+**Status:** Foundational engineering constitution and target architecture
+
 **Scope:** Delanmar AI platform, integrations, workforce, and applications
 
 ## 1. Purpose and authority
