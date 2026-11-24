@@ -1,15 +1,17 @@
 # Architecture
 
-Assumption: "bazal" means **Bazel**.
+The [Core Architecture v1.0](../DELANMAR_CORE_ARCHITECTURE_v1.0.md) is the foundational technical authority and describes the target architecture. This document describes the current implementation and its verification limits.
 
 | Layer | Language | Role |
 |---|---|---|
 | `core/` | Rust | 24-agent roster and human-approval policy (blueprint §8); JSON-lines bridge binary |
 | `mojo/` | Mojo | Numeric/analytics kernels (pilot metrics) |
-| `adapters/` | Python | LangChain, LangGraph, CrewAI, BeeAI adapters |
+| `adapters/` | Python | Preliminary LangChain, LangGraph, CrewAI, and BeeAI integration seams |
 | Root | Bazel | Builds, tests, and wires all languages |
 
-Non-Rust/Mojo languages never touch each other directly: Bazel builds `//core:delanmar_bridge`, and adapters reach it only through the JSON-lines contract (`{"op":"list_agents"}`, `{"op":"check_action","agent":..,"action":..}`) via `adapters/delanmar_adapters/bridge.py`. Anything not on the routine-action allowlist returns `requires_human_approval`.
+Bazel builds `//core:delanmar_bridge`; the Python bridge client communicates with the Rust process through a JSON-lines contract (`{"op":"list_agents"}`, `{"op":"check_action","agent":..,"action":..}`) via `adapters/delanmar_adapters/bridge.py`. Bazel itself does not carry runtime messages. For known agents, actions not on the routine-action allowlist return `requires_human_approval`; unknown agents return `unknown_agent`.
+
+The current policy is a prototype, not an enforced system-wide security boundary: the bridge does not authenticate callers, apply per-agent permissions, execute approved actions, or provide an approval workflow. Some adapter helpers call the gate, but framework execution and tools are not universally constrained by it. The common agent contract and AG2 adapter described in the constitution are not yet implemented.
 
 ## Status (verified vs. not)
 
