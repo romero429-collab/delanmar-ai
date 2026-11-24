@@ -1,0 +1,7 @@
+# Mojo has no official Bazel rules; build/test are wrapped as shell targets that
+# skip cleanly when `mojo` is not installed.
+sh_test(
+    name = "metrics_test",
+    srcs = ["run_mojo.sh"],
+    data = ["metrics.mojo"],
+)

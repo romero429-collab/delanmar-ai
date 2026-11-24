@@ -1,0 +1,16 @@
+[package]
+name = "delanmar_core"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "delanmar_core"
+path = "src/lib.rs"
+
+[[bin]]
+name = "delanmar_bridge"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

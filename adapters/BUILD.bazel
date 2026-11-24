@@ -1,0 +1,20 @@
+load("@rules_python//python:defs.bzl", "py_library", "py_test")
+
+py_library(
+    name = "delanmar_adapters",
+    srcs = glob(["delanmar_adapters/*.py"]),
+    imports = ["."],
+    visibility = ["//visibility:public"],
+)
+
+# Framework packages (langchain-core, langgraph, crewai, beeai) are optional and lazily
+# imported; pin them via a pip extension in MODULE.bazel when versions are chosen.
+
+py_test(
+    name = "bridge_test",
+    srcs = ["tests/bridge_test.py"],
+    main = "tests/bridge_test.py",
+    data = ["//core:delanmar_bridge"],
+    env = {"DELANMAR_BRIDGE": "$(rootpath //core:delanmar_bridge)"},
+    deps = [":delanmar_adapters"],
+)
