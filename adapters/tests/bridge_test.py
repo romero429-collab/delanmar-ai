@@ -1,7 +1,9 @@
 import json
 import os
+import signal
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import types
@@ -143,6 +145,37 @@ class BridgeTest(unittest.TestCase):
             if w != -1:
                 os.close(w)
 
+    def test_server_rejects_oversized_input_and_closes(self):
+        request = b'{"version":2,"request_id":"r","op":"list_agents"}\n'
+        for suffix in (b"\n", b""):
+            with self.subTest(suffix=suffix):
+                result = subprocess.run(
+                    [os.environ["DELANMAR_BRIDGE"]],
+                    input=b"x" * 65537 + suffix + request,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                lines = result.stdout.splitlines()
+                self.assertEqual(len(lines), 1)
+                self.assertEqual(json.loads(lines[0]), {
+                    "version": 2, "request_id": None, "decision": "deny",
+                    "reason": "request_too_large", "principal": None,
+                })
+
+    def test_server_accepts_boundary_and_recovers_after_invalid_utf8(self):
+        valid = b'{"version":2,"request_id":"r","op":"list_agents"}'
+        boundary = valid + b" " * (65536 - len(valid) - 1) + b"\n"
+        result = subprocess.run(
+            [os.environ["DELANMAR_BRIDGE"]],
+            input=boundary + b"\xff\n" + valid + b"\n",
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        responses = [json.loads(line) for line in result.stdout.splitlines()]
+        self.assertEqual([r["reason"] for r in responses],
+                         ["caller_not_authenticated", "malformed_request", "caller_not_authenticated"])
+        self.assertTrue(all(r["decision"] == "deny" for r in responses))
+
 
 class BridgeFailureTest(unittest.TestCase):
     def fake_bridge(self, code, timeout=0.2):
@@ -247,6 +280,38 @@ class BridgeFailureTest(unittest.TestCase):
                 raise ValueError("callback")
         self.assertIsNotNone(bridge._p.poll())
         bridge.close()
+
+    @unittest.skipUnless(sys.platform.startswith("linux"), "Linux /proc required")
+    def test_descendant_inheriting_pipes_survives_timeout_and_close(self):
+        for mode in ("timeout", "close"):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                pidfile = os.path.join(directory, "child.pid")
+                code = (
+                    "import subprocess,sys,time; "
+                    "p=subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)']); "
+                    f"open({pidfile!r},'w').write(str(p.pid)); "
+                    "time.sleep(30)"
+                )
+                bridge = self.fake_bridge(code, timeout=0.5)
+                deadline = time.monotonic() + 3
+                while (not os.path.exists(pidfile) or not os.path.getsize(pidfile)) and time.monotonic() < deadline:
+                    time.sleep(0.01)
+                with open(pidfile) as file:
+                    pid = int(file.read())
+                try:
+                    if mode == "timeout":
+                        with self.assertRaises(TimeoutError):
+                            bridge.check_action("admin", "fixture", resource=RESOURCE, context=CONTEXT)
+                    else:
+                        bridge.close()
+                    self.assertIsNotNone(bridge._p.poll())
+                    with open(f"/proc/{pid}/stat") as file:
+                        self.assertNotEqual(file.read().split(") ", 1)[1][0], "Z")
+                finally:
+                    try:
+                        os.kill(pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
 
     def test_concurrent_calls_are_rejected(self):
         bridge = self.fake_bridge("import time; time.sleep(10)", timeout=0.5)

@@ -266,6 +266,10 @@ impl Core {
         Core { caller, policy }
     }
 
+    pub fn reject_oversized_request() -> String {
+        serde_json::to_string(&response(None, Decision::Deny, "request_too_large")).unwrap()
+    }
+
     pub fn handle(&self, line: &str) -> String {
         let request = match serde_json::from_str::<Request>(line) {
             Ok(e) => e,

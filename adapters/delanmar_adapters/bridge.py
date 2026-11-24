@@ -131,7 +131,7 @@ class Bridge:
         reasons = {
             "allow": {"permitted"} if request.get("op") == "authorize" else {"roster_available"},
             "approval_required": {"approval_required"},
-            "deny": {"malformed_request", "unsupported_version", "caller_not_authenticated",
+            "deny": {"malformed_request", "request_too_large", "unsupported_version", "caller_not_authenticated",
                      "caller_mismatch", "authorization_unavailable", "unknown_agent", "no_permission"},
         }
         if reason not in reasons[decision]:

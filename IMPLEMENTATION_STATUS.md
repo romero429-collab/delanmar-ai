@@ -5,7 +5,7 @@ Inventory of current work in progress and its verification limits. Maturity term
 | Component | Implemented | Tested | Piloted | Production-ready | Notes |
 |---|---|---|---|---|---|
 | Rust core (`core/`): 24-agent roster, action policy, JSON-lines binary | Work in progress | Unit tests, per snapshot | No | No | Strict v2 contract includes resource, context and request ID, with structured decisions. Per-agent production grants are empty. No trustworthy caller authentication; descriptor self-assertion removed, so the production bridge denies all calls. Resource/context are not enforced. |
-| Python bridge (`adapters/delanmar_adapters/bridge.py`) | Work in progress | Bridge tests, per snapshot | No | No | POSIX subprocess client; bounded request I/O, single operation at a time; production calls deny without authentication. |
+| Python bridge (`adapters/delanmar_adapters/bridge.py`) | Work in progress | Bridge tests, per snapshot | No | No | POSIX subprocess client; bounded request I/O, single operation at a time; production calls deny without authentication. Descendants can survive bridge shutdown and must not be trusted to be contained. |
 | LangChain and LangGraph helpers | Yes | Unverified | No | No | Unpinned; voluntary gate only, with no framework bypass prevention (Phase 7). |
 | CrewAI helper | Roster-based helper | Unverified | No | No | Unpinned; roster lookup only, not an execution gate (Phase 7). |
 | BeeAI | Callable seam only | Unverified | No | No | Must move beyond seam (Phase 7). |
