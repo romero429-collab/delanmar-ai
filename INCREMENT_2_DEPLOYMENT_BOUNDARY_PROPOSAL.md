@@ -188,6 +188,46 @@ budget gates are resolved. Runtime implementation needs a further separate
 approval. VM evidence applies only to the tested configuration, not to future
 physical hardware; independently review and verify any migration.
 
+## Decision and gate record
+
+This is a pre-provisioning review, not evidence that the planned controls
+operate. A human owner must select the laboratory and explicitly decide whether
+to adopt hybrid/local-first as the long-term direction. Until then both remain
+open. No independent reviewer has approved the boundary in this record.
+
+| Gate | State and evidence needed before provisioning |
+|---|---|
+| Environment | **Open.** Record the chosen host and hypervisor or cloud project/region, supported Fedora release, exact image identifier and provenance, signed checksum verification method, and expected kernel, systemd and SELinux configuration. Confirm host capacity or cloud availability and image compatibility. |
+| Trust boundary | **Open.** Obtain independent review of the protected launcher, service, UID inventory and registry, socket and filesystem permissions, process/IPC isolation, descriptor handling and lifecycle/revocation design below. Identify the reviewer and unresolved risks; neither a design nor `SO_PEERCRED` alone proves enforcement. |
+| Access and egress | **Open.** Specify the Windows administration path and recovery access, authenticated administrators, firewall rules and update destinations. Demonstrate in the design how workload traffic is denied even when the host can update. For cloud, verify IAP, OS Login, image guest support, IAM, service-account choice and filtered outbound path together. For local, document host-only or other network topology and how it avoids LAN exposure and unintended forwarding. |
+| Budget | **Open.** Record dated, sourced prices and usage assumptions for the selected candidate, all supporting services and taxes, plus budget owner approval. Complete the estimate below and confirm it is at or below $50/month; approximately $25 is the target. An alert is not a spending cap. |
+| Evidence and approval | **Open.** Record the selected configuration, decision owner, independent reviewer, evidence location, known limitations and explicit provisioning approval. Runtime implementation requires a separate explicit approval; neither approval closes Phase 1 or approves production security. |
+
+Pre-provisioning checks establish that a specific configuration is feasible and
+reviewed; they cannot establish actual enforcement. After separately approved
+provisioning, record the installed image and artifact hashes, kernel, systemd,
+SELinux enforcing state, account and socket settings, network paths and
+administrative access, then verify them on the actual VM. Runtime-dependent
+adversarial tests below can only follow separate runtime authorization and
+implementation. A mismatch or failed control stops the experiment for review,
+not an automatic exception.
+
+### Cost worksheet
+
+The amounts are deliberately **unverified**, not zero. Capture the date,
+currency, source, region, machine and disk SKUs, hours/month, storage and
+network usage, and pricing assumptions for each selected option. Include
+one-time setup costs separately and disclose uncertainty.
+
+| Cost component | Local VM | Cloud VM |
+|---|---|---|
+| Compute / host capacity | Incremental hardware, licensing and electricity: not estimated | VM size and running hours: not estimated |
+| Storage and recovery | Disk capacity, backup and replacement: not estimated | Boot disk, snapshots and backup, including stopped VM storage: not estimated |
+| Access, filtering and networking | Network and update-transfer/supporting service costs: not estimated | IAP, filtering proxy, NAT if needed, addresses, data processing and egress: not estimated |
+| Operations | Monitoring, logs and other supporting services: not estimated | Monitoring, logs and other supporting services: not estimated |
+| Taxes and fees | Not estimated | Not estimated |
+| Total monthly and one-time cost | Unknown; budget gate open | Unknown; budget gate open |
+
 ## Socket, credentials and isolation evaluation
 
 Unix-domain sockets and `SO_PEERCRED` avoid a caller-supplied bearer identity and
@@ -333,6 +373,7 @@ limitation rather than claiming revocation prevents its use.
 | Lifecycle and reuse | Stop/revoke B while connected and with requests in flight: no subsequent decision uses B's old binding. Initial UID reuse is refused. Future reuse testing must include surviving children and retained descriptors, and demonstrate refusal until cleanup and that old connections never become the new generation. Repeat across service and host restart. Test previously returned decisions separately and record that this boundary cannot retract them. |
 | Failure injection | Independently break credential lookup, registry validation, mapping acknowledgement, policy availability, isolation setup, socket creation, service/control-channel availability and response delivery. For every case, no workload starts unbound and no affected request produces an allow or synthetic effect. |
 | Namespace and concurrency | Exercise configured namespace, capability, setuid and supplementary-group escape attempts and race connect/request against revoke/re-register. No foreign UID is accepted and no stale or ambiguous mapping produces an allow. Repeat races under load and report iteration counts. |
+| Local VM baseline, if selected | Verify actual Windows host and hypervisor, guest image and configuration, administrative access, update path and workload egress restrictions. Verify that the VM and its management interfaces are not unintentionally exposed to the LAN. |
 | Cloud baseline | Verify the actual image, IAM and OS Login, IAP-only ingress, proxy and egress restrictions, SELinux, accounts, protected files and sockets, descriptor inheritance and cgroup settings. Record failures; intended settings alone are not evidence. |
 
 For each run record the repository revision and artifact hashes, Linux/kernel
@@ -351,6 +392,8 @@ tested identity boundary, not Phase 1 acceptance or production readiness.
 
 - Which supported Fedora Cloud image, kernel, systemd configuration and
   SELinux profile will be selected, and how will they be independently verified?
+- Does the owner adopt hybrid/local-first, and which local or cloud laboratory
+  meets the gates given the actual Windows workstation and available budget?
 - Can OS Login and IAP work with that image and no attached service account?
   Which approved outbound proxy, destinations, regional prices and budget controls
   fit within the $25 target and $50 maximum?
