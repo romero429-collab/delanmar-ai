@@ -9,8 +9,8 @@ Authoritative inventory of what exists, what is tested and what is unverified. M
 | LangChain, LangGraph, CrewAI helpers | Yes | Unverified | No | No | Unpinned; not constrained by the authorization path (Phase 7). |
 | BeeAI | Callable seam only | Unverified | No | No | Must move beyond seam (Phase 7). |
 | AG2 | No | No | No | No | Real adapter required (Phase 7). |
-| Mojo kernel (`mojo/`) | Example | Unverified | No | No | Toolchain unavailable in last snapshot. |
-| Bazel build | Configuration | Unverified | No | No | Not verified. |
+| Mojo (`mojo/`) | Metric example | Unverified | No | No | Toolchain unavailable in last snapshot; not a validated kernel or production capability. Phase 9 plans toolchain and workload evaluation. |
+| Bazel build | Configuration | Unverified | No | No | Phase 9 plans toolchain, dependency, reproducibility and CI verification. |
 | Agent workforce | Roster entries only | No | No | No | No operational agents. |
 | Persistence, audit, secrets, backup/restore | No | No | No | No | Phase 2. |
 | Approval workflow | No | No | No | No | Phase 1. |
@@ -19,3 +19,5 @@ Authoritative inventory of what exists, what is tested and what is unverified. M
 ## Unverified
 
 Framework calls, CI, build reproducibility, security enforcement and recovery behavior are unverified.
+
+Phase 7 separates certification of pilot-used frameworks from independent certification of all five for platform use. Neither track is complete merely because its requirements are documented.

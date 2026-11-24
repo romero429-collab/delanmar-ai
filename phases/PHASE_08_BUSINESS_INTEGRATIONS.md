@@ -10,7 +10,7 @@ Connect approved business systems and external services.
 - Each integration has its own permissions, credentials, data boundaries and error-handling policy.
 
 ## Dependencies
-Phases 2 and 7, plus the Phase 0 workflow.
+Phase 2, the Phase 0 workflow and Phase 7 pilot certification for frameworks used by that workflow; unrelated frameworks do not block pilot integrations.
 
 ## Related business pilot stage
 Pilot Phase 6 in the [OpenWorks pilot plan](../strategy/DELANMAR_OPENWORKS_PILOT_SETUP.md) (business track; numbering is not equivalent).
