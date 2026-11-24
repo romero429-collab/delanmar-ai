@@ -4,7 +4,7 @@ NOTE: framework APIs here are unverified against installed versions (see docs/AR
 from .bridge import Bridge
 
 
-def guarded(bridge: Bridge, agent: str, action: str, fn, *args, resource, context, **kwargs):
+def guarded(bridge: Bridge, agent: str, action: str, resource, context, fn, /, *args, **kwargs):
     """Run fn only if the core allows it; otherwise return a pending-approval marker."""
     decision = bridge.check_action(agent, action, resource=resource, context=context)
     if decision != "allow":
@@ -16,7 +16,7 @@ def langchain_tool(bridge: Bridge, agent: str, action: str, fn, description: str
     from langchain_core.tools import StructuredTool
 
     return StructuredTool.from_function(
-        func=lambda **kw: guarded(bridge, agent, action, fn, resource=resource, context=context, **kw),
+        func=lambda **kw: guarded(bridge, agent, action, resource, context, fn, **kw),
         name=f"{agent}_{action}",
         description=description,
     )

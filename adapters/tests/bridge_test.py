@@ -4,6 +4,7 @@ import subprocess
 import unittest
 
 from delanmar_adapters.bridge import Bridge
+from delanmar_adapters.beeai import beeai_handler
 from delanmar_adapters.frameworks import guarded
 
 
@@ -30,9 +31,25 @@ class BridgeTest(unittest.TestCase):
             self.assertIsNone(r["principal"])
 
     def test_guard_does_not_execute(self):
-        r = guarded(self.b, "bookkeeping", "issue_payment", lambda: 1 / 0,
-                    resource=RESOURCE, context=CONTEXT)
+        r = guarded(self.b, "bookkeeping", "issue_payment", RESOURCE, CONTEXT, lambda: 1 / 0)
         self.assertEqual(r["status"], "deny")
+
+    def test_beeai_seam_forwards_gate_and_callback_metadata(self):
+        class FakeBridge:
+            def check_action(self, agent, action, *, resource, context):
+                self.request = (agent, action, resource, context)
+                return "allow"
+
+        fake = FakeBridge()
+        handler = beeai_handler(fake, "admin", "fixture", lambda **kw: kw,
+                                resource=RESOURCE, context=CONTEXT)
+        result = handler(resource="callback-resource", context="callback-context")
+        self.assertEqual(fake.request, ("admin", "fixture", RESOURCE, CONTEXT))
+        self.assertEqual(result["result"], {"resource": "callback-resource",
+                                            "context": "callback-context"})
+        denied = beeai_handler(self.b, "admin", "fixture", lambda: 1 / 0,
+                               resource=RESOURCE, context=CONTEXT)
+        self.assertEqual(denied()["status"], "deny")
 
     def test_constructor_cannot_claim_caller(self):
         with self.assertRaises(TypeError):

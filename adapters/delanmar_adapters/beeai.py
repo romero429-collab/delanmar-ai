@@ -5,6 +5,6 @@ from .bridge import Bridge
 from .frameworks import guarded
 
 
-def beeai_handler(bridge: Bridge, agent: str, action: str, fn):
+def beeai_handler(bridge: Bridge, agent: str, action: str, fn, *, resource, context):
     """Return a plain callable suitable for registering as a BeeAI agent/tool body."""
-    return lambda **kw: guarded(bridge, agent, action, fn, **kw)
+    return lambda **kw: guarded(bridge, agent, action, resource, context, fn, **kw)
