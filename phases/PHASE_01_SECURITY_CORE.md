@@ -10,7 +10,7 @@ Harden Rust identity, permissions and human approval.
 - Implement individual agent permissions.
 - Authenticate bridge callers.
 - Establish fail-closed authorization.
-- Implement approval requests and decisions.
+- Implement and record approval requests and decisions.
 - Prevent frameworks from executing tools outside the Rust-controlled authorization path.
 
 ## Dependencies
@@ -20,7 +20,11 @@ Phase 0 scope. Security design may begin in parallel with Phase 0.
 Pilot Phase 1 in the [OpenWorks pilot plan](../strategy/DELANMAR_OPENWORKS_PILOT_SETUP.md) (business track; numbering is not equivalent).
 
 ## Acceptance
-All deliverables above meet the applicable maturity level under the acceptance standard, with evidence, negative tests for authorization where relevant, and human-owner approval.
+- **Minimum maturity: Tested** for the Rust Core, bridge and approval boundary in scope.
+- Demonstrate an authoritative identity and individually assigned permissions for every agent; test permitted actions and recorded approval requests and decisions.
+- Test that unauthenticated requests, unknown agents, unauthorized actions, malformed requests and missing or unavailable authorization decisions, including authorization-service failures, fail safely without executing the action.
+- Test that framework tools and delegation cannot bypass the Core or exercise authority beyond its explicit decision.
+- Record revision, environment, commands or procedure, results, limitations and reviewer; update the implementation status and obtain human-owner approval.
 
 ## Governing rule
 No agent may exercise authority that the Rust Core has not explicitly granted.

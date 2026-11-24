@@ -17,7 +17,10 @@ Phases 3 and 4; may proceed in parallel with Phase 6.
 Pilot Phase 4 in the [OpenWorks pilot plan](../strategy/DELANMAR_OPENWORKS_PILOT_SETUP.md) (business track; numbering is not equivalent).
 
 ## Acceptance
-All deliverables above meet the applicable maturity level under the acceptance standard, with evidence, negative tests for authorization where relevant, and human-owner approval.
+- **Minimum maturity: Tested** for the selected communication agents and workflow.
+- Demonstrate approved scripts and service information, consent and contact boundaries, handoffs, handling of incomplete requests and escalation to a human.
+- Test permitted communications and deny unauthorized contact, commitments and actions outside each agent's permissions.
+- Record revision, environment, commands or procedure, results, limitations and reviewer; update the implementation status and obtain human-owner approval.
 
 ## Governing rule
 No agent may exercise authority that the Rust Core has not explicitly granted.
