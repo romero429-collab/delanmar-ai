@@ -139,8 +139,10 @@ to the workloads.
 
 ### Public-source observations
 
-These observations were researched on 2026-11-24, not verified on the owner's
-workstation or a deployed VM:
+These observations were researched on 2026-11-24 from indexed search excerpts;
+direct source-page retrieval was unavailable. Recheck the live pages before
+relying on them. They were not verified on the owner's workstation or a
+deployed VM:
 
 - [Fedora's Cloud download page](https://fedoraproject.org/cloud/download/)
   lists Fedora Cloud 45, including an x86_64 QEMU image. It is a candidate,
@@ -153,6 +155,11 @@ workstation or a deployed VM:
   include hardware virtualization and SLAT. Hyper-V is only a possible local
   candidate; the Windows edition, available features, host capacity and guest
   compatibility have not been checked.
+- Google's [OS catalog](https://cloud.google.com/compute/docs/images/os-details)
+  lists Fedora CoreOS images; Fedora Cloud Base availability as a public image
+  was not established. A custom-image path may be necessary and needs its own
+  provenance, guest-environment and support review. Google explicitly excludes
+  CoreOS from OS Login; do not treat it as an interchangeable fallback.
 - [Google's IAP documentation](https://cloud.google.com/iap/docs/using-tcp-forwarding)
   describes encrypted TCP forwarding and its access controls; the proposed
   ingress rule and IAM must still be validated for the chosen instance.
@@ -247,6 +254,29 @@ one-time setup costs separately and disclose uncertainty.
 | Operations | Monitoring, logs and other supporting services: not estimated | Monitoring, logs and other supporting services: not estimated |
 | Taxes and fees | Not estimated | Not estimated |
 | Total monthly and one-time cost | Unknown; budget gate open | Unknown; budget gate open |
+
+**Cloud cost warning, not a quote:** A
+[third-party estimate](https://calculator.holori.com/gcp/vm/e2-standard-2),
+indexed as of 2026-11-04 and found on 2026-11-24, lists `e2-standard-2` in `us-central1` at approximately
+$0.067/hour on demand. At 730 hours this is about $48.91/month for compute.
+Google's [disk pricing](https://cloud.google.com/compute/disks-image-pricing)
+gives an example equivalent to $0.04/GB-month for US standard persistent disk;
+40 GB at that rate is $1.60/month. The illustrative subtotal is therefore
+about **$50.51/month** before networking, proxy, backups, logs, taxes and other
+costs. These are not verified project-specific prices or a complete estimate;
+use the [Google Cloud pricing calculator](https://cloud.google.com/products/calculator)
+and current regional SKUs to confirm. The proposed always-on size cannot be
+assumed to meet the ceiling; a different size or schedule needs feasibility and
+security review, and stopped storage may still be billed.
+
+For comparison, Google's
+[Secure Web Proxy pricing](https://cloud.google.com/secure-web-proxy/pricing)
+lists a Standard gateway at $1.25/hour plus $0.0193/GiB processed. At 730 hours
+the gateway alone would be $912.50/month before traffic and other costs. This
+always-on managed option is incompatible with the ceiling under those
+assumptions; no alternative egress solution has been selected or approved.
+All prices above were obtained from search excerpts, not a project-specific
+quote; recheck current regional rates and billing terms before a decision.
 
 ## Socket, credentials and isolation evaluation
 
