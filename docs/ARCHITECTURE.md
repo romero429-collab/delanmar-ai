@@ -15,5 +15,19 @@ The current policy is a prototype, not an enforced system-wide security boundary
 
 ## Status (verified vs. not)
 
-- Verified: Rust core unit tests and bridge via `cargo test` / `cargo run` in `core/`.
-- Not verified: Bazel files and rule versions, Python adapter tests, the Mojo kernel, and all LangChain/LangGraph/CrewAI/BeeAI calls (frameworks are not version-pinned; BeeAI is only a documented seam).
+- Previously verified: Rust core unit tests and bridge via `cargo test` / `cargo run` in `core/`.
+- Not verified: Bazel files and rule versions, the Mojo kernel, and all LangChain/LangGraph/CrewAI/BeeAI calls (frameworks are not version-pinned; BeeAI is only a documented seam).
+
+### Local verification snapshot
+
+On 2026-11-24, against code at revision `c6905aa`, a Linux environment with Rust/Cargo 1.100.0 and Python 3.12.3 produced the following results (commands are run from the repository root):
+
+| Check | Result |
+|---|---|
+| `cargo test --locked --manifest-path core/Cargo.toml` | Passed: three Rust unit tests; no binary or doc tests. |
+| `cargo build --locked --manifest-path core/Cargo.toml` | Passed: built the Rust bridge. |
+| `PYTHONPATH=adapters DELANMAR_BRIDGE="$PWD/core/target/debug/delanmar_bridge" python3 -m unittest discover -s adapters/tests -p '*_test.py' -v` | Passed: three Python bridge tests. Python reported unclosed-file `ResourceWarning`s; process cleanup needs investigation. |
+| `bazel --version` | Timed out after 12 seconds; no Bazel build or test was verified. |
+| Mojo | `mojo` executable unavailable; no Mojo test was run. |
+
+This snapshot does not verify framework calls, CI, reproducibility, security enforcement, or other environments. See [Phase 1](../phases/PHASE_01_INFRASTRUCTURE.md) for the remaining baseline work.
