@@ -606,4 +606,20 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn every_operation_rejects_unknown_top_level_fields() {
+        let c = core_as("scheduler");
+        for request in [
+            serde_json::json!({"version":2,"request_id":"r","op":"list_agents","extra":true}),
+            serde_json::json!({"version":2,"request_id":"r","op":"authorize",
+                "agent":"scheduler","action":"fixture_read","resource":{"kind":"x","id":"x"},
+                "context":{"operation":"read","purpose":"test"},"extra":true}),
+        ] {
+            let result: serde_json::Value =
+                serde_json::from_str(&c.handle(&request.to_string())).unwrap();
+            assert_eq!(result["decision"], "deny");
+            assert_eq!(result["reason"], "malformed_request");
+        }
+    }
 }

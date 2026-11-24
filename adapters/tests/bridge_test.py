@@ -1,7 +1,11 @@
 import json
 import os
 import subprocess
+import sys
+import threading
+import time
 import unittest
+from unittest.mock import patch
 
 from delanmar_adapters.bridge import Bridge
 from delanmar_adapters.beeai import beeai_handler
@@ -91,6 +95,122 @@ class BridgeTest(unittest.TestCase):
                 os.close(r)
             if w != -1:
                 os.close(w)
+
+
+class BridgeFailureTest(unittest.TestCase):
+    def fake_bridge(self, code, timeout=0.2):
+        popen = subprocess.Popen
+        with patch("delanmar_adapters.bridge.subprocess.Popen") as launch:
+            launch.side_effect = lambda _args, **kw: popen([sys.executable, "-u", "-c", code], **kw)
+            bridge = Bridge(binary="test-only", timeout=timeout)
+        self.addCleanup(bridge.close)
+        return bridge
+
+    def assert_gate_fails_closed(self, bridge):
+        invoked = []
+        with self.assertRaises((RuntimeError, TimeoutError)):
+            guarded(bridge, "admin", "fixture", RESOURCE, CONTEXT, lambda: invoked.append(True))
+        self.assertEqual(invoked, [])
+        self.assertIsNotNone(bridge._p.poll())
+        self.assertTrue(bridge._p.stdin.closed)
+        self.assertTrue(bridge._p.stdout.closed)
+        with self.assertRaises(RuntimeError):
+            bridge.check_action("admin", "fixture", resource=RESOURCE, context=CONTEXT)
+
+    def test_terminated_process_fails_closed(self):
+        bridge = self.fake_bridge("pass")
+        bridge._p.wait(timeout=2)
+        self.assert_gate_fails_closed(bridge)
+
+    def test_unexpected_eof_fails_closed(self):
+        bridge = self.fake_bridge("import sys,time; sys.stdin.readline(); sys.stdout.close(); time.sleep(10)")
+        self.assert_gate_fails_closed(bridge)
+
+    def test_malformed_and_mismatched_responses_fail_closed(self):
+        replies = [
+            "not json", "[]", '{"version":2,"version":2}', "{}",
+            '{"version":true,"request_id":"bad","decision":"allow","reason":"permitted","principal":null}',
+        ]
+        for reply in replies:
+            with self.subTest(reply=reply):
+                code = f"import sys,time; sys.stdin.readline(); print({reply!r}, flush=True); time.sleep(10)"
+                self.assert_gate_fails_closed(self.fake_bridge(code))
+
+    def test_inconsistent_correlated_responses_fail_closed(self):
+        variants = [
+            {"decision": "allow", "reason": "no_permission", "principal": "agent:admin"},
+            {"decision": "allow", "reason": "permitted", "principal": "agent:scheduler"},
+            {"decision": "allow", "reason": "permitted", "principal": None},
+            {"decision": "deny", "reason": "no_permission", "principal": None, "extra": 1},
+            {"decision": "deny", "reason": "no_permission", "principal": None, "agents": []},
+        ]
+        for variant in variants:
+            with self.subTest(variant=variant):
+                code = ("import sys,json,time; req=json.loads(sys.stdin.readline()); "
+                        f"r={variant!r}; r.update(version=2,request_id=req['request_id']); "
+                        "print(json.dumps(r),flush=True); time.sleep(10)")
+                self.assert_gate_fails_closed(self.fake_bridge(code))
+
+    def test_timeout_fails_closed_and_reaps_process(self):
+        bridge = self.fake_bridge("import time; time.sleep(10)")
+        start = time.monotonic()
+        self.assert_gate_fails_closed(bridge)
+        self.assertLess(time.monotonic() - start, 3)
+
+    def test_blocked_write_and_oversized_response_fail_closed(self):
+        bridge = self.fake_bridge("import time; time.sleep(10)")
+        with self.assertRaises(TimeoutError):
+            bridge.call(op="authorize", data="x" * 60000)
+        self.assertIsNotNone(bridge._p.poll())
+        bridge = self.fake_bridge(
+            "import sys,time; sys.stdin.readline(); sys.stdout.write('x'*65537+'\\n'); "
+            "sys.stdout.flush(); time.sleep(10)"
+        )
+        self.assert_gate_fails_closed(bridge)
+
+    def test_valid_correlated_response_and_callback_exception_cleanup(self):
+        bridge = self.fake_bridge(
+            "import sys,json,time; req=json.loads(sys.stdin.readline()); "
+            "print(json.dumps(dict(version=2,request_id=req['request_id'],decision='allow',"
+            "reason='permitted',principal='agent:admin')),flush=True); time.sleep(10)"
+        )
+        with self.assertRaisesRegex(ValueError, "callback"):
+            with bridge:
+                guarded(bridge, "admin", "fixture", RESOURCE, CONTEXT,
+                        lambda: (_ for _ in ()).throw(ValueError("callback")))
+        self.assertIsNotNone(bridge._p.poll())
+
+    def test_context_manager_cleans_up_on_exception(self):
+        bridge = self.fake_bridge("import time; time.sleep(10)")
+        with self.assertRaisesRegex(ValueError, "callback"):
+            with bridge:
+                raise ValueError("callback")
+        self.assertIsNotNone(bridge._p.poll())
+        bridge.close()
+
+    def test_concurrent_calls_are_rejected(self):
+        bridge = self.fake_bridge("import time; time.sleep(10)", timeout=0.5)
+        errors = []
+
+        def first_call():
+            try:
+                bridge.check_action("admin", "fixture", resource=RESOURCE, context=CONTEXT)
+            except Exception as exc:
+                errors.append(exc)
+
+        thread = threading.Thread(target=first_call)
+        thread.start()
+        deadline = time.monotonic() + 2
+        while not bridge._lock.locked() and time.monotonic() < deadline:
+            time.sleep(0.001)
+        try:
+            with self.assertRaisesRegex(RuntimeError, "concurrent"):
+                bridge.check_action("admin", "fixture", resource=RESOURCE, context=CONTEXT)
+        finally:
+            thread.join(timeout=3)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(len(errors), 1)
+        self.assertIsInstance(errors[0], TimeoutError)
 
 
 if __name__ == "__main__":
