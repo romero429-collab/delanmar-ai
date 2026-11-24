@@ -17,7 +17,9 @@ Phase 1 identity and authorization work is in progress. Per-agent policy is defa
 
 The former Python-created pipe conveyed an **identity assertion**, not an authenticated identity: any same-user process could launch a bridge and write `admin` to its own pipe. The binary now ignores that mechanism and cannot establish a caller. A future trusted launcher must authenticate workloads independently, map them to permitted agents, protect its binary and policy, and isolate workloads from the launcher's authority. A Unix socket with peer credentials alone cannot distinguish adversaries sharing one OS user; separate OS identities or equivalent isolation and a reviewed identity mapping are needed. No supported secure deployment or launcher is implemented. `Core::new` accepts a principal from its embedding process and is not an authentication boundary; callers must not supply an untrusted assertion as a principal.
 
-Version 2 is a deliberate breaking migration: version 1 requests and caller bindings are not accepted. Callers must supply the required v2 fields; there is no automatic legacy fallback. IDs and other fields are nonempty ASCII identifiers of at most 128 bytes, using letters, digits, `.`, `_`, `:`, `-`, or `/`; identifiers must not contain secrets or personal data. A structurally valid request's response echoes its request ID; an unparseable request has a null request ID, which the Python client rejects. The client generates a random ID and validates the response version, ID, decision and reason. IDs are for correlation only: replay prevention, timeouts, input line limits, trusted context, resource-level policy, and execution binding are not implemented.
+Version 2 is a deliberate breaking migration: version 1 requests and caller bindings are not accepted. Callers must supply the required v2 fields; there is no automatic legacy fallback. IDs and other fields are nonempty ASCII identifiers of at most 128 bytes, using letters, digits, `.`, `_`, `:`, `-`, or `/`; identifiers must not contain secrets or personal data. A structurally valid request's response echoes its request ID; an unparseable request has a null request ID, which the Python client rejects. The client generates a random ID and validates response fields, correlation, decisions and reasons. IDs are for correlation only: replay prevention, Rust input line limits, trusted context, resource-level policy, and execution binding are not implemented.
+
+The Python client supports POSIX pipe I/O only and rejects concurrent calls or concurrent close on a bridge instance. It uses a configurable positive timeout (default five seconds) for each request's pipe exchange, limits each client-side message to 64 KiB, and closes and terminates the direct subprocess on errors, timeouts or explicit close. A context manager provides cleanup on exceptions. These controls do not authenticate the executable selected by the caller or contain its descendants; a malicious executable or compromised same-user process is outside this reliability mechanism. The client mirrors the nine consequential actions as a defense-in-depth response check; maintain this list in sync with Rust. Network and multi-tenant deployment are unsupported.
 
 Approval records and workflow, audit, an execution broker, resource/context enforcement, framework bypass prevention, and adversarial certification are not implemented.
 
@@ -29,6 +31,24 @@ The current policy is a prototype, not an enforced system-wide security boundary
 - Not verified: Bazel files and rule versions, the Mojo kernel, and all LangChain/LangGraph/CrewAI/BeeAI calls (frameworks are not version-pinned; BeeAI is only a documented seam).
 
 ### Increment 1 correction verification
+
+#### Final PR #7 review snapshot
+
+On 2026-11-24, code revision `7379f362560eaa756468e9f10010ae25b7bb85e9` was tested against main revision `b730a88150fbd632cf73f3c0a52192c2cd577563` on Linux 7.0.0-1017-azure x86_64, Rust/Cargo 1.100.0 and Python 3.12.3. Commands ran from the repository root:
+
+| Command | Result |
+|---|---|
+| `cargo test --locked --manifest-path core/Cargo.toml` | Passed: 15 Rust unit tests, including malformed contracts, both operations' unknown fields, policy errors, duplicate grants and synthetic identity mismatch. |
+| `cargo build --locked --manifest-path core/Cargo.toml` | Passed. |
+| `PYTHONPATH=adapters DELANMAR_BRIDGE="$PWD/core/target/debug/delanmar_bridge" python3 -m unittest discover -s adapters/tests -p '*_test.py' -v` | Passed: 18 Python tests, including subprocess termination, EOF, invalid responses, timeout, blocked write, cleanup, concurrency rejection and same-user identity assertion. LangChain and LangGraph checks use stubs, not installed frameworks. |
+| `cargo fmt --manifest-path core/Cargo.toml -- --check` | Passed. |
+| `git diff --check` | Passed on the committed code revision. |
+| `timeout 90s bazel test //core:delanmar_core_test //adapters:bridge_test` | Not verified: Bazel launcher could not resolve/download its `latest` version because DNS for `www.googleapis.com` failed; no Bazel tests ran. |
+| CodeQL checker | No Python or Rust alerts; Rust was analyzed before the final Python-only change. |
+
+Review status: Copilot performed code and automated review; a reliability review identified blocked-worker and inconsistent-decision risks, which were addressed. Independent human security reviewer and owner approval remain pending. Framework integrations, hostile-process isolation, authenticated identity, approval and execution enforcement, resource-scoped authorization, and production readiness remain unverified or unimplemented. This is a fail-closed transition, not Phase 1 acceptance.
+
+#### Earlier correction snapshot
 
 On 2026-11-24, the code subsequently committed as `5ef091da7f41ef855dc16b46e4f19f70c725a5d7` was tested in Linux 7.0.0-1017-azure x86_64, Rust/Cargo 1.100.0 and Python 3.12.3. Commands ran from the repository root:
 
