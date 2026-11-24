@@ -70,7 +70,7 @@ Begin with intake, document preparation, and follow-up if those are the easiest 
 - Define which actions agents may perform, which require review, and which are prohibited.
 - Establish a human owner for each workflow.
 
-**Exit criteria:** A written workflow map, baseline measurement plan, permission plan, and named human approver.
+**Exit criteria:** A written workflow map, baseline measurement plan, recorded baseline values with measurement definitions, collection period and data sources before automation begins, permission plan, and named human approver.
 
 ### Phase 1 — Establish the foundation
 
