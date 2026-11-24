@@ -12,6 +12,8 @@ The Delanmar OpenWorks Pilot will test selected customer intake, service prepara
 
 ## Core documents
 
+- [Core Architecture v1.0](DELANMAR_CORE_ARCHITECTURE_v1.0.md) — foundational technical authority
+- [Implementation Architecture and Status](docs/ARCHITECTURE.md)
 - [AI Workforce Blueprint v1.1](strategy/DELANMAR_AI_WORKFORCE_v1.1.md)
 - [OpenWorks Pilot Setup](strategy/DELANMAR_OPENWORKS_PILOT_SETUP.md)
 
