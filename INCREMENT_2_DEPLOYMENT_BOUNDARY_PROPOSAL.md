@@ -137,6 +137,26 @@ workload execution is permitted. The host administration and trusted launcher
 may require administrative privilege; that is distinct from granting privilege
 to the workloads.
 
+### Public-source observations
+
+These observations were researched on 2026-11-24, not verified on the owner's
+workstation or a deployed VM:
+
+- [Fedora's Cloud download page](https://fedoraproject.org/cloud/download/)
+  lists Fedora Cloud 45, including an x86_64 QEMU image. It is a candidate,
+  not a selected or verified image for either host. Check the
+  [release lifecycle](https://docs.fedoraproject.org/en-US/releases/),
+  [signed checksum and download](https://docs.fedoraproject.org/en-US/fedora/security-team/cryptography/signatures/),
+  image format and host-specific compatibility at selection time; an image
+  listed by Fedora does not establish Google guest-agent or OS Login support.
+- [Microsoft's Hyper-V requirements](https://learn.microsoft.com/en-us/windows-server/virtualization/hyper-v/host-hardware-requirements)
+  include hardware virtualization and SLAT. Hyper-V is only a possible local
+  candidate; the Windows edition, available features, host capacity and guest
+  compatibility have not been checked.
+- [Google's IAP documentation](https://cloud.google.com/iap/docs/using-tcp-forwarding)
+  describes encrypted TCP forwarding and its access controls; the proposed
+  ingress rule and IAM must still be validated for the chosen instance.
+
 ## Initial Fedora Cloud VM candidate
 
 The proposed initial test platform is a dedicated, terminal-only Fedora Cloud
